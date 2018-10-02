@@ -18,6 +18,6 @@ set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 include_directories(GLTFViewer glad/include)
 list(APPEND SOURCES glad/src/glad.c)
 
-add_executable(322COM_raycaster ${SOURCES} src/main.cpp)
+add_executable(322COM_raycaster ${SOURCES} src/main.cpp src/Sphere.cpp src/Sphere.h)
 
 target_link_libraries(322COM_raycaster glfw)
