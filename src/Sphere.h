@@ -5,6 +5,7 @@
 #include <glm.hpp>
 
 class Sphere {
+public:
     glm::vec3 position;
     float radius;
     glm::vec3 colour;

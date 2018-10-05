@@ -6,8 +6,9 @@
 
 const int WIDTH = 640;
 const int HEIGHT = 480;
-const float FOV = 30;
+const float FOV = 90;
 const glm::vec3 CAMERA(0, 0, 0);
+const glm::vec3 BACKGROUND(1.f, 1.f, 1.f);
 
 std::vector<Sphere*> spheres;
 
@@ -24,6 +25,36 @@ void write(glm::vec3 **image) {
     }
 
     ofs.close();
+}
+
+/**
+ * Calculates whether the ray intersects the sphere and where it hits on the sphere.
+ * @param ray The ray to test
+ * @param sphere The sphere to test
+ * @param hitDistance This value is set to the closest distance between the sphere and CAMERA
+ * @return Whether the ray hit or not
+ */
+bool intersects_sphere(glm::vec3& ray, Sphere* sphere, float* hitDistance) {
+    // Construct a right angle triangle between center of sphere, origin and ray
+    glm::vec3 L = sphere->position - CAMERA;
+    float tca = glm::dot(L, ray);
+    if (tca < 0) return false; // Object is opposite direction of the ray
+
+    // d2 is the distance squared between the ray and sphere center
+    float d2 = glm::dot(L, L) - (tca * tca);
+    float radius2 = sphere->radius * sphere->radius;
+    // We square the radius instead of sqrt the distance because it's cheaper
+    if (d2 > radius2) return false; // If distance between ray and sphere is greater then radius, not hit
+
+    // Calculate the closest hit point. TODO optimise
+    float tHitCenter = sqrt(radius2 - d2);
+    float hit1 = tca - tHitCenter;
+    float hit2 = tca + tHitCenter;
+
+    if (hit1 < hit2) hitDistance = &hit1;
+    else hitDistance = &hit2;
+
+    return true;
 }
 
 void raycast(glm::vec3 **image) {
@@ -46,14 +77,20 @@ void raycast(glm::vec3 **image) {
             glm::vec3 ray = glm::normalize(cameraSpace - CAMERA);
 
             // Loop through the spheres and see if we hit
+            Sphere* sphereClosest = nullptr;
+            float sphereClosestDist = 1000;
+            float* distance;
+            *distance = 1000.f;
             for (auto& sphere : spheres) {
-
+                if (intersects_sphere(ray, sphere, distance) && *distance < sphereClosestDist) {
+                    sphereClosest = sphere;
+                    sphereClosestDist = *distance;
+                }
             }
-
-            // Debug: Set pixel output to ray direction
-            image[x][y].r = ray.x;
-            image[x][y].g = ray.y;
-            image[x][y].b = ray.z;
+            if (sphereClosest != nullptr) {
+                image[x][y] = sphereClosest->colour;
+            }
+            delete distance;
         }
     }
 }
@@ -64,6 +101,11 @@ int main() {
 
     for (int x = 0; x < WIDTH; ++x) {
         image[x] = new glm::vec3[HEIGHT];
+
+        // Set the initial color
+        for (int y = 0; y < HEIGHT; ++y) {
+            image[x][y] = BACKGROUND;
+        }
     }
 
     // Create spheres
