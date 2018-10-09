@@ -7,6 +7,7 @@
 #include <ext.hpp>
 #include "Sphere.h"
 #include "Plane.h"
+#include "Image.h"
 
 const int WIDTH = 640;
 const int HEIGHT = 480;
@@ -66,17 +67,7 @@ void write(glm::vec3 **image) {
     ofs.close();
 }
 
-void toSingleArray(glm::vec3 **image, glm::vec3 *array) {
-    int pos = 0;
-    for (int y = 0; y < HEIGHT; ++y) {
-        for (int x = 0; x < WIDTH; ++x) {
-            array[pos] = image[x][y];
-            pos++;
-        }
-    }
-}
-
-void raycast(glm::vec3 **image) {
+void raycast(Image *image) {
     float aspectRatio = WIDTH / HEIGHT;
 
     for (int x = 0; x < WIDTH; ++x) {
@@ -107,7 +98,7 @@ void raycast(glm::vec3 **image) {
                 }
             }
             if (shapeClosest != nullptr) {
-                image[x][y] = shapeClosest->colour;
+                image->setValue(x, y, shapeClosest->colour);
             }
         }
     }
@@ -158,16 +149,7 @@ int main() {
     glfwSwapInterval(1);
 
     // Create image/texture raycaster will write to
-    auto **image = new glm::vec3*[WIDTH];
-
-    for (int x = 0; x < WIDTH; ++x) {
-        image[x] = new glm::vec3[HEIGHT];
-
-        // Set the initial color
-        for (int y = 0; y < HEIGHT; ++y) {
-            image[x][y] = BACKGROUND;
-        }
-    }
+    auto image = new Image(WIDTH, HEIGHT);
 
     // Generate basic shader program
     vertexShader = glCreateShader(GL_VERTEX_SHADER);
@@ -206,8 +188,6 @@ int main() {
 
     initScene();
 
-    auto singleArray = new glm::vec3[WIDTH * HEIGHT];
-
     // Update loop
     while (!glfwWindowShouldClose(window)) {
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
@@ -217,9 +197,8 @@ int main() {
         raycast(image);
 
         // Write image to texture
-        toSingleArray(image, singleArray);
         glBindTexture(GL_TEXTURE_2D, raycastTexture);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, WIDTH, HEIGHT, 0, GL_RGB, GL_FLOAT, singleArray);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, WIDTH, HEIGHT, 0, GL_RGB, GL_FLOAT, image->getData());
         glErrorCheck();
 
         // Draw result
@@ -230,6 +209,10 @@ int main() {
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
+
+    // Cleanup resources
+    delete image;
+    glfwTerminate();
 
     return 0;
 }
