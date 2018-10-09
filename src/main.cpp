@@ -12,7 +12,7 @@
 
 const int WIDTH = 640;
 const int HEIGHT = 480;
-const float FOV = 90;
+const float FOV = 120;
 const glm::vec3 CAMERA(0, 0, 0);
 const glm::vec3 BACKGROUND(1.f, 1.f, 1.f);
 
