@@ -216,6 +216,9 @@ int main() {
 
     // Cleanup resources
     delete image;
+    for (auto shape : shapes) {
+        delete shape;
+    }
     glfwTerminate();
 
     return 0;

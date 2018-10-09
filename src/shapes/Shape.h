@@ -9,6 +9,9 @@ class Shape {
 public:
     glm::vec3 colour;
     virtual bool intersects(Ray *ray, float *distance) = 0;
+
+    Shape() = default;
+    virtual ~Shape() {};
 };
 
 
