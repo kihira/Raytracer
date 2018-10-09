@@ -3,15 +3,22 @@
 
 
 #include <glm.hpp>
+#include "Shape.h"
+#include "Ray.h"
 
-class Sphere {
-public:
+class Sphere : public Shape {
+private:
     glm::vec3 position;
     float radius;
-    glm::vec3 colour;
-
 public:
     Sphere(const glm::vec3 &position, float radius, const glm::vec3 &colour);
+    /**
+    * Calculates whether the ray intersects the sphere and where it hits on the sphere.
+    * @param ray The ray to test
+    * @param distance This value is set to the closest distance between the sphere and ray->origin
+    * @return Whether the ray hit or not
+    */
+    bool intersects(Ray *ray, float *distance) override;
 };
 
 
