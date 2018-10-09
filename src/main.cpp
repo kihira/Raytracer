@@ -4,6 +4,7 @@
 #include <vector>
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
+#include <ext.hpp>
 #include "Sphere.h"
 #include "Plane.h"
 
@@ -20,16 +21,17 @@ static const char* vertexShaderSource = R"(
 layout (location = 0) in vec2 pos;
 out vec2 uv;
 void main() {
-    uv = pos;
+    uv = vec2((pos.x + 1) / 2, 1 - ((pos.y + 1) / 2));
     gl_Position = vec4(pos, 0, 1);
 })";
 
 static const char* fragmentShaderSource = R"(
 #version 330
 in vec2 uv;
+uniform sampler2D tex;
 out vec4 outCol;
 void main() {
-    outCol = vec4(uv.x, uv.y, 0, 1);
+    outCol = vec4(texture(tex, uv).rgb, 1);
 }
 )";
 
@@ -41,6 +43,13 @@ static const float vertices[16] {
         -1, 1,
         -1, -1
 };
+
+void glErrorCheck() {
+    GLuint err = glGetError();
+    if (err != 0) {
+        std::cerr << "GL Error 0x" << std::hex << err << std::endl;
+    }
+}
 
 void write(glm::vec3 **image) {
     std::ofstream ofs("./untitled.ppm", std::ios::out | std::ios::binary);
@@ -55,6 +64,16 @@ void write(glm::vec3 **image) {
     }
 
     ofs.close();
+}
+
+void toSingleArray(glm::vec3 **image, glm::vec3 *array) {
+    int pos = 0;
+    for (int y = 0; y < HEIGHT; ++y) {
+        for (int x = 0; x < WIDTH; ++x) {
+            array[pos] = image[x][y];
+            pos++;
+        }
+    }
 }
 
 void raycast(glm::vec3 **image) {
@@ -110,7 +129,7 @@ void glfwFramebufferSizeCallback(GLFWwindow *window, int width, int height) {
 
 int main() {
     GLFWwindow *window;
-    GLuint vao, vertexBuffer, vertexShader, fragmentShader, program;
+    GLuint vao, vertexBuffer, vertexShader, fragmentShader, program, raycastTexture;
 
     // Initialize OpenGL and GLFW for realtime rendering
     if (!glfwInit()) {
@@ -163,6 +182,7 @@ int main() {
     glAttachShader(program, vertexShader);
     glAttachShader(program, fragmentShader);
     glLinkProgram(program);
+    glErrorCheck();
 
     // Create basic rectangle to draw our image to
     glGenVertexArrays(1, &vao);
@@ -173,11 +193,20 @@ int main() {
 
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 2, (void*) 0);
+    glErrorCheck();
 
     // Generate texture to store our raycast output to
-
+    glGenTextures(1, &raycastTexture);
+    glBindTexture(GL_TEXTURE_2D, raycastTexture);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glErrorCheck();
 
     initScene();
+
+    auto singleArray = new glm::vec3[WIDTH * HEIGHT];
 
     // Update loop
     while (!glfwWindowShouldClose(window)) {
@@ -185,11 +214,18 @@ int main() {
         glClear(GL_COLOR_BUFFER_BIT);
 
         // Raycast
-        // raycast(image);
+        raycast(image);
+
+        // Write image to texture
+        toSingleArray(image, singleArray);
+        glBindTexture(GL_TEXTURE_2D, raycastTexture);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, WIDTH, HEIGHT, 0, GL_RGB, GL_FLOAT, singleArray);
+        glErrorCheck();
 
         // Draw result
         glUseProgram(program);
         glDrawArrays(GL_TRIANGLES, 0, 6);
+        glErrorCheck();
 
         glfwSwapBuffers(window);
         glfwPollEvents();
