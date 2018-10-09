@@ -2,6 +2,8 @@
 #include <glm.hpp>
 #include <fstream>
 #include <vector>
+#include <glad/glad.h>
+#include <GLFW/glfw3.h>
 #include "Sphere.h"
 #include "Plane.h"
 
@@ -12,6 +14,33 @@ const glm::vec3 CAMERA(0, 0, 0);
 const glm::vec3 BACKGROUND(1.f, 1.f, 1.f);
 
 std::vector<Shape*> shapes;
+
+static const char* vertexShaderSource = R"(
+#version 330
+layout (location = 0) in vec2 pos;
+out vec2 uv;
+void main() {
+    uv = pos;
+    gl_Position = vec4(pos, 0, 1);
+})";
+
+static const char* fragmentShaderSource = R"(
+#version 330
+in vec2 uv;
+out vec4 outCol;
+void main() {
+    outCol = vec4(uv.x, uv.y, 0, 1);
+}
+)";
+
+static const float vertices[16] {
+        -1, -1,
+        1, -1,
+        1, 1,
+        1, 1,
+        -1, 1,
+        -1, -1
+};
 
 void write(glm::vec3 **image) {
     std::ofstream ofs("./untitled.ppm", std::ios::out | std::ios::binary);
@@ -65,8 +94,51 @@ void raycast(glm::vec3 **image) {
     }
 }
 
+inline void initScene() {
+    // Create spheres
+    shapes.push_back(new Sphere(glm::vec3(0, 0, -20), 4, glm::vec3(1, .32, .36)));
+    shapes.push_back(new Sphere(glm::vec3(5, -1, -15), 2, glm::vec3(.9, .76, .46)));
+    shapes.push_back(new Sphere(glm::vec3(5, 0, -25), 3, glm::vec3(.65, .77, .97)));
+    shapes.push_back(new Sphere(glm::vec3(-5.5, 0, -15), 3, glm::vec3(.9, .9, .9)));
+    // Floor
+    shapes.push_back(new Plane(glm::vec3(0, -10, 0), glm::vec3(0, -1, 0), glm::vec3(.2, .2, .2)));
+}
+
+void glfwFramebufferSizeCallback(GLFWwindow *window, int width, int height) {
+    glViewport(0, 0, width, height);
+}
+
 int main() {
-    // Initialise the image
+    GLFWwindow *window;
+    GLuint vao, vertexBuffer, vertexShader, fragmentShader, program;
+
+    // Initialize OpenGL and GLFW for realtime rendering
+    if (!glfwInit()) {
+        return -1;
+    }
+
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+#if __APPLE__
+    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, true);
+#endif
+
+    window = glfwCreateWindow(WIDTH, HEIGHT, "322COM Raycaster", nullptr, nullptr);
+    if (!window) {
+        glfwTerminate();
+        return -1;
+    }
+
+    glfwMakeContextCurrent(window);
+    glfwSetFramebufferSizeCallback(window, glfwFramebufferSizeCallback);
+    if (!gladLoadGLLoader((GLADloadproc) glfwGetProcAddress)) {
+        std::cerr << "Failed to load GLAD" << std::endl;
+        return -1;
+    }
+    glfwSwapInterval(1);
+
+    // Create image/texture raycaster will write to
     auto **image = new glm::vec3*[WIDTH];
 
     for (int x = 0; x < WIDTH; ++x) {
@@ -78,17 +150,50 @@ int main() {
         }
     }
 
-    // Create spheres
-    shapes.push_back(new Sphere(glm::vec3(0, 0, -20), 4, glm::vec3(1, .32, .36)));
-    shapes.push_back(new Sphere(glm::vec3(5, -1, -15), 2, glm::vec3(.9, .76, .46)));
-    shapes.push_back(new Sphere(glm::vec3(5, 0, -25), 3, glm::vec3(.65, .77, .97)));
-    shapes.push_back(new Sphere(glm::vec3(-5.5, 0, -15), 3, glm::vec3(.9, .9, .9)));
-    // Floor
-    shapes.push_back(new Plane(glm::vec3(0, -10, 0), glm::vec3(0, -1, 0), glm::vec3(.2, .2, .2)));
+    // Generate basic shader program
+    vertexShader = glCreateShader(GL_VERTEX_SHADER);
+    glShaderSource(vertexShader, 1, &vertexShaderSource, nullptr);
+    glCompileShader(vertexShader);
 
-    raycast(image);
+    fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
+    glShaderSource(fragmentShader, 1, &fragmentShaderSource, nullptr);
+    glCompileShader(fragmentShader);
 
-    write(image);
+    program = glCreateProgram();
+    glAttachShader(program, vertexShader);
+    glAttachShader(program, fragmentShader);
+    glLinkProgram(program);
+
+    // Create basic rectangle to draw our image to
+    glGenVertexArrays(1, &vao);
+    glBindVertexArray(vao);
+    glGenBuffers(1, &vertexBuffer);
+    glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 2, (void*) 0);
+
+    // Generate texture to store our raycast output to
+
+
+    initScene();
+
+    // Update loop
+    while (!glfwWindowShouldClose(window)) {
+        glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT);
+
+        // Raycast
+        // raycast(image);
+
+        // Draw result
+        glUseProgram(program);
+        glDrawArrays(GL_TRIANGLES, 0, 6);
+
+        glfwSwapBuffers(window);
+        glfwPollEvents();
+    }
 
     return 0;
 }
