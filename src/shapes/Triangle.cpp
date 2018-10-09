@@ -4,15 +4,22 @@ bool Triangle::intersects(Ray *ray, float *distance) {
     glm::vec3 e1 = vertices[1] - vertices[0];
     glm::vec3 e2 = vertices[2] - vertices[0];
 
-    glm::vec3 oa = ray->origin - vertices[0];
     glm::vec3 de2 = ray->direction * e2;
+    float det = glm::dot(e1, de2); // Determinate (Normal of the triangle)
 
-    float u = glm::dot(oa, de2) / glm::dot(e1, de2);
-    float v = glm::dot(ray->direction, oa * e1) / glm::dot(e1, de2);
+    // Aiming in the same direction so we're only seeing the back
+    if (det < 1e-6) return false;
 
-    if (u < 0 || u > 1 || v < 0 || u + v > 1) return false;
+    glm::vec3 oa = ray->origin - vertices[0];
 
-    *distance = glm::dot(e2, (oa * e1) / glm::dot(e1, de2));
+    // Calculate u and test
+    float u = glm::dot(oa, de2);
+    if (u < 0 || u > det) return false;
+
+    float v = glm::dot(ray->direction, oa * e1);
+    if (v < 0 || u + v > det) return false;
+
+    *distance = glm::dot(e2, (oa * e1)) * (1.0 - det);
     return true;
 }
 
