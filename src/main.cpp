@@ -3,6 +3,7 @@
 #include <fstream>
 #include <vector>
 #include "Sphere.h"
+#include "Plane.h"
 
 const int WIDTH = 640;
 const int HEIGHT = 480;
@@ -83,7 +84,7 @@ int main() {
     shapes.push_back(new Sphere(glm::vec3(5, 0, -25), 3, glm::vec3(.65, .77, .97)));
     shapes.push_back(new Sphere(glm::vec3(-5.5, 0, -15), 3, glm::vec3(.9, .9, .9)));
     // Floor
-    shapes.push_back(new Sphere(glm::vec3(0, -10004, -20), 10000, glm::vec3(.2, .2, .2)));
+    shapes.push_back(new Plane(glm::vec3(0, -10, 0), glm::vec3(0, -1, 0), glm::vec3(.2, .2, .2)));
 
     raycast(image);
 

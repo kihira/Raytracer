@@ -11,7 +11,7 @@ private:
     glm::vec3 position;
     glm::vec3 normal;
 public:
-    Plane(const glm::vec3 &position, const glm::vec3 &normal);
+    Plane(const glm::vec3 &position, const glm::vec3 &normal, const glm::vec3 &colour);
     bool intersects(Ray *ray, float *distance) override;
 };
 
