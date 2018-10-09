@@ -1,5 +1,5 @@
 #include "Plane.h"
-#include "Ray.h"
+#include "../Ray.h"
 
 Plane::Plane(const glm::vec3 &position, const glm::vec3 &normal, const glm::vec3 &colour)
         : position(position), normal(normal) {

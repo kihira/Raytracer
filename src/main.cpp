@@ -5,9 +5,10 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <ext.hpp>
-#include "Sphere.h"
-#include "Plane.h"
+#include "shapes/Sphere.h"
+#include "shapes/Plane.h"
 #include "Image.h"
+#include "shapes/Triangle.h"
 
 const int WIDTH = 640;
 const int HEIGHT = 480;
@@ -110,6 +111,10 @@ inline void initScene() {
     shapes.push_back(new Sphere(glm::vec3(5, -1, -15), 2, glm::vec3(.9, .76, .46)));
     shapes.push_back(new Sphere(glm::vec3(5, 0, -25), 3, glm::vec3(.65, .77, .97)));
     shapes.push_back(new Sphere(glm::vec3(-5.5, 0, -15), 3, glm::vec3(.9, .9, .9)));
+
+    // Triangle
+    shapes.push_back(new Triangle(new glm::vec3[3]{glm::vec3(0, 1, -2), glm::vec3(-1.9, -1, -2), glm::vec3(1.6, -0.5, -2)}, glm::vec3(.6, .3, .5)));
+
     // Floor
     shapes.push_back(new Plane(glm::vec3(0, -10, 0), glm::vec3(0, -1, 0), glm::vec3(.2, .2, .2)));
 }
@@ -164,6 +169,7 @@ int main() {
     glAttachShader(program, vertexShader);
     glAttachShader(program, fragmentShader);
     glLinkProgram(program);
+    glUseProgram(program);
     glErrorCheck();
 
     // Create basic rectangle to draw our image to
@@ -196,13 +202,11 @@ int main() {
         // Raycast
         raycast(image);
 
-        // Write image to texture
-        glBindTexture(GL_TEXTURE_2D, raycastTexture);
+        // Write image to texture (Don't need to rebind, should be bound)
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, WIDTH, HEIGHT, 0, GL_RGB, GL_FLOAT, image->getData());
         glErrorCheck();
 
         // Draw result
-        glUseProgram(program);
         glDrawArrays(GL_TRIANGLES, 0, 6);
         glErrorCheck();
 

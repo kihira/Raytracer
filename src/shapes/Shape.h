@@ -3,7 +3,7 @@
 
 
 #include <glm.hpp>
-#include "Ray.h"
+#include "../Ray.h"
 
 class Shape {
 public:

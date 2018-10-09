@@ -4,7 +4,7 @@
 
 #include <glm.hpp>
 #include "Shape.h"
-#include "Ray.h"
+#include "../Ray.h"
 
 class Sphere : public Shape {
 private:
