@@ -51,8 +51,8 @@ bool intersects_sphere(glm::vec3& ray, Sphere* sphere, float* hitDistance) {
     float hit1 = tca - tHitCenter;
     float hit2 = tca + tHitCenter;
 
-    if (hit1 < hit2) hitDistance = &hit1;
-    else hitDistance = &hit2;
+    if (hit1 < hit2) *hitDistance = hit1;
+    else *hitDistance = hit2;
 
     return true;
 }
@@ -79,18 +79,16 @@ void raycast(glm::vec3 **image) {
             // Loop through the spheres and see if we hit
             Sphere* sphereClosest = nullptr;
             float sphereClosestDist = 1000;
-            float* distance;
-            *distance = 1000.f;
+            float distance = 1000.f;
             for (auto& sphere : spheres) {
-                if (intersects_sphere(ray, sphere, distance) && *distance < sphereClosestDist) {
+                if (intersects_sphere(ray, sphere, &distance) && distance < sphereClosestDist) {
                     sphereClosest = sphere;
-                    sphereClosestDist = *distance;
+                    sphereClosestDist = distance;
                 }
             }
             if (sphereClosest != nullptr) {
                 image[x][y] = sphereClosest->colour;
             }
-            delete distance;
         }
     }
 }
