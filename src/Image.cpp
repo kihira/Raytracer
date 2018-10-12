@@ -17,10 +17,14 @@ glm::vec3 &Image::operator[](int i) {
     return data[i];
 }
 
-Image::Image(int width, int height) : width(width), height(height) {
+Image::Image(int width, int height, const glm::vec3 background) : width(width), height(height), background(background) {
     data = new glm::vec3[width * height];
 }
 
 Image::~Image() {
-    delete data;
+    delete[] data;
+}
+
+const glm::vec3 &Image::getBackground() const {
+    return background;
 }

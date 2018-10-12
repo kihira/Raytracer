@@ -18,7 +18,6 @@ const int WIDTH = 640;
 const int HEIGHT = 480;
 const float FOV = 120;
 const glm::vec3 CAMERA(0, 0, 0);
-const glm::vec3 BACKGROUND(1.f, 1.f, 1.f);
 
 std::vector<Shape*> shapes;
 
@@ -105,8 +104,36 @@ static void raycast(Image *image, int xStart, int xCount) {
             if (shapeClosest != nullptr) {
                 image->setValue(x, y, shapeClosest->colour);
             }
+            else {
+                image->setValue(x, y, image->getBackground());
+            }
         }
     }
+}
+
+void renderScene(Image *image) {
+    using namespace std::chrono;
+    std::cout << "Starting render..." << std::endl;
+
+    std::thread threads[THREADS];
+    int xPortions = WIDTH / 4;
+    milliseconds startTime = duration_cast<milliseconds>(system_clock::now().time_since_epoch());
+
+    // Need to run these in a lambda to capture the functions and variables
+    threads[0] = std::thread([image, xPortions](){ return raycast(image, 0, xPortions);});
+    threads[1] = std::thread([image, xPortions](){ return raycast(image, xPortions, xPortions);});
+    threads[2] = std::thread([image, xPortions](){ return raycast(image, xPortions * 2, xPortions);});
+    threads[3] = std::thread([image, xPortions](){ return raycast(image, xPortions * 3, xPortions);});
+
+    for (auto &thread : threads) {
+        thread.join();
+    }
+
+    // Write image to texture (Don't need to rebind, should be bound)
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, WIDTH, HEIGHT, 0, GL_RGB, GL_FLOAT, image->getData());
+    glErrorCheck();
+
+    std::cout << "Render complete in " << (duration_cast<milliseconds>(system_clock::now().time_since_epoch()) - startTime).count() << "ms" << std::endl;
 }
 
 inline void initScene() {
@@ -123,15 +150,16 @@ inline void initScene() {
     shapes.push_back(new Plane(glm::vec3(0, -10, 0), glm::vec3(0, -1, 0), glm::vec3(.2, .2, .2)));
 
     // Teapot
-    std::vector<glm::vec3> vertices;
-    std::vector<glm::vec3> normals;
-    glm::vec3 teapotColor(.6, .3, .5);
-    loadOBJ("./teapot_simple.obj", vertices, normals);
-    for (int i = 0; i < vertices.size(); i+=3) {
-        shapes.push_back(new Triangle(&vertices[i], teapotColor));
-    }
+//    std::vector<glm::vec3> vertices;
+//    std::vector<glm::vec3> normals;
+//    glm::vec3 teapotColor(.6, .3, .5);
+//    loadOBJ("./teapot_simple.obj", vertices, normals);
+//    for (int i = 0; i < vertices.size(); i+=3) {
+//        shapes.push_back(new Triangle(&vertices[i], teapotColor));
+//    }
 }
 
+// todo resize image
 void glfwFramebufferSizeCallback(GLFWwindow *window, int width, int height) {
     glViewport(0, 0, width, height);
 }
@@ -167,7 +195,7 @@ int main() {
     glfwSwapInterval(1);
 
     // Create image/texture raycaster will write to
-    auto image = new Image(WIDTH, HEIGHT);
+    auto image = new Image(WIDTH, HEIGHT, glm::vec3(1.f, 1.f, 1.f));
 
     // Generate basic shader program
     vertexShader = glCreateShader(GL_VERTEX_SHADER);
@@ -206,31 +234,15 @@ int main() {
     glErrorCheck();
 
     initScene();
-
-    std::cout << "Starting render..." << std::endl;
-    std::thread threads[THREADS];
-    int xPortions = WIDTH / 4;
-    // Need to run these in a lambda to capture the functions and variables
-    threads[0] = std::thread([image, xPortions](){ return raycast(image, 0, xPortions);});
-    threads[1] = std::thread([image, xPortions](){ return raycast(image, xPortions, xPortions);});
-    threads[2] = std::thread([image, xPortions](){ return raycast(image, xPortions * 2, xPortions);});
-    threads[3] = std::thread([image, xPortions](){ return raycast(image, xPortions * 3, xPortions);});
-
-    for (auto &thread : threads) {
-        thread.join();
-    }
+    renderScene(image);
 
     // Update loop
     while (!glfwWindowShouldClose(window)) {
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
 
-        // Raycast
-//        raycast(image);
-
-        // Write image to texture (Don't need to rebind, should be bound)
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, WIDTH, HEIGHT, 0, GL_RGB, GL_FLOAT, image->getData());
-        glErrorCheck();
+        // Render
+        // renderScene(image);
 
         // Draw result
         glDrawArrays(GL_TRIANGLES, 0, 6);
