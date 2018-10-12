@@ -8,10 +8,9 @@
 
 class Sphere : public Shape {
 private:
-    glm::vec3 position;
     float radius;
 public:
-    Sphere(const glm::vec3 &position, float radius, const glm::vec3 &colour);
+    Sphere(const glm::vec3 &position, float radius, Material material);
     /**
     * Calculates whether the ray intersects the sphere and where it hits on the sphere.
     * @param ray The ray to test
@@ -19,6 +18,8 @@ public:
     * @return Whether the ray hit or not
     */
     bool intersects(Ray *ray, float *distance) override;
+
+    glm::vec3 getNormal(glm::vec3 &intersectionPoint) override;
 };
 
 

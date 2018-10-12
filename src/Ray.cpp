@@ -3,14 +3,14 @@
 
 Ray::Ray(const glm::vec3 &direction, const glm::vec3 &origin) : direction(direction), origin(origin) {}
 
-bool Ray::cast(std::vector<Shape *> &shapes, Shape **hitShape) {
+bool Ray::cast(std::vector<Shape *> &shapes, Shape **hitShape, float *hitDistance) {
     // Loop through the shapes and see if we hit
-    float closestDist = 1000.f;
     float distance = 1000.f;
+    *hitDistance = distance;
     for (auto& shape : shapes) {
-        if (shape->intersects(this, &distance) && distance < closestDist) {
+        if (shape->intersects(this, &distance) && distance < *hitDistance) {
             *hitShape = shape;
-            closestDist = distance;
+            *hitDistance = distance;
         }
     }
     return hitShape == nullptr;

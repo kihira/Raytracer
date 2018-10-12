@@ -5,13 +5,31 @@
 #include <glm.hpp>
 #include "../Ray.h"
 
+struct Material {
+    glm::vec3 ambient;
+    glm::vec3 diffuse;
+    glm::vec3 specular;
+    float shininess;
+};
+
 class Shape {
 public:
-    glm::vec3 colour;
+    explicit Shape(Material material);
+
+    virtual ~Shape() {};
+
     virtual bool intersects(Ray *ray, float *distance) = 0;
 
-    Shape() = default;
-    virtual ~Shape() {};
+    virtual glm::vec3 getNormal(glm::vec3 &intersectionPoint);
+
+    glm::vec3 getPosition() const;
+
+    const Material &getMaterial() const;
+
+protected:
+    glm::vec3 position;
+    glm::vec3 normal;
+    Material material;
 };
 
 

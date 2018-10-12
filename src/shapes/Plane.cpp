@@ -1,9 +1,9 @@
 #include "Plane.h"
 #include "../Ray.h"
 
-Plane::Plane(const glm::vec3 &position, const glm::vec3 &normal, const glm::vec3 &colour)
-        : position(position), normal(normal) {
-    this->colour = colour;
+Plane::Plane(const glm::vec3 &position, const glm::vec3 &normal, Material material) : Shape(material) {
+    this->position = position;
+    this->normal = normal;
 }
 
 bool Plane::intersects(Ray *ray, float *distance) {

@@ -12,7 +12,7 @@ public:
     glm::vec3 origin;
 
     Ray(const glm::vec3 &direction, const glm::vec3 &origin);
-    bool cast(std::vector<Shape *> &shapes, Shape **hitShape);
+    bool cast(std::vector<Shape *> &shapes, Shape **hitShape, float *hitDistance);
 };
 
 

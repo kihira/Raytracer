@@ -1,7 +1,8 @@
 #include "Sphere.h"
 
-Sphere::Sphere(const glm::vec3 &position, float radius, const glm::vec3 &colour) : position(position), radius(radius) {
-    this->colour = colour;
+Sphere::Sphere(const glm::vec3 &position, float radius, Material material)
+        : Shape(material), radius(radius) {
+    this->position = position;
 }
 
 bool Sphere::intersects(Ray *ray, float *distance) {
@@ -25,4 +26,8 @@ bool Sphere::intersects(Ray *ray, float *distance) {
     else *distance = hit2;
 
     return true;
+}
+
+glm::vec3 Sphere::getNormal(glm::vec3 &intersectionPoint) {
+    return glm::normalize(intersectionPoint - position);
 }

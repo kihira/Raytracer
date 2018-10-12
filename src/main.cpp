@@ -14,12 +14,6 @@
 
 #define THREADS 4
 
-const float FOV = 120;
-glm::vec3 CAMERA(0, 0, 0);
-
-Image *image;
-std::vector<Shape *> shapes;
-
 static const char *vertexShaderSource = R"(
 #version 330
 layout (location = 0) in vec2 pos;
@@ -48,6 +42,18 @@ static const float vertices[16] {
         -1, -1
 };
 
+const float FOV = 120;
+glm::vec3 CAMERA(0, 0, 0);
+
+Image *image;
+std::vector<Shape *> shapes;
+
+// Lights
+glm::vec3 ambientIntensity(.2f, .2f, .2f);
+
+glm::vec3 pointLightPosition(0, 20, 0);
+glm::vec3 pointLightIntensity(1.f, 1.f, 1.f);
+
 void glErrorCheck() {
     GLuint err = glGetError();
     if (err != 0) {
@@ -69,6 +75,23 @@ void write(Image *image) {
     }
 
     ofs.close();
+}
+
+// TODO calculate why specular is not working correctly.
+//  reflection spot is located in the wrong position
+glm::vec3 calculateLighting(Ray *ray, Shape *shape, float distance) {
+    glm::vec3 intersectionPoint = ray->direction * distance;
+    glm::vec3 normal = shape->getNormal(intersectionPoint);
+    glm::vec3 lightRay = glm::normalize(pointLightPosition - intersectionPoint);
+    glm::vec3 reflection = 2.f * glm::dot(lightRay, normal) * normal - lightRay;
+    Material mat = shape->getMaterial();
+
+    glm::vec3 colour(0.f, 0.f, 0.f);
+    colour += mat.ambient * ambientIntensity; // Ambient
+    colour += mat.diffuse * (pointLightIntensity * fmax(0.f, glm::dot(lightRay, normal))); // Diffuse
+    colour += mat.specular * pointLightIntensity * pow(fmax(0.f, glm::dot(reflection, ray->direction)), mat.shininess); // Specular
+
+    return colour;
 }
 
 static void raycast(Image *image, int xStart, int xCount) {
@@ -93,10 +116,12 @@ static void raycast(Image *image, int xStart, int xCount) {
 
             // Loop through the shapes and see if we hit
             Shape *shapeClosest = nullptr;
-            ray->cast(shapes, &shapeClosest);
+            float distance;
+            ray->cast(shapes, &shapeClosest, &distance);
 
             if (shapeClosest != nullptr) {
-                image->setValue(x, y, shapeClosest->colour);
+                // Calculate lighting
+                image->setValue(x, y, calculateLighting(ray, shapeClosest, distance));
             }
             else {
                 image->setValue(x, y, image->getBackground());
@@ -132,16 +157,20 @@ void renderScene(Image *image) {
 
 inline void initScene() {
     // Create spheres
-    shapes.push_back(new Sphere(glm::vec3(0, 0, -20), 4, glm::vec3(1, .32, .36)));
-    shapes.push_back(new Sphere(glm::vec3(5, -1, -15), 2, glm::vec3(.9, .76, .46)));
-    shapes.push_back(new Sphere(glm::vec3(5, 0, -25), 3, glm::vec3(.65, .77, .97)));
-    shapes.push_back(new Sphere(glm::vec3(-5.5, 0, -15), 3, glm::vec3(.9, .9, .9)));
+    shapes.push_back(new Sphere(glm::vec3(0, 0, -20), 4,
+            {glm::vec3(1.f, .32f, .36f), glm::vec3(1.f, .32f, .36f), glm::vec3(.7f, .7f, .7f), 128.f}));
+    shapes.push_back(new Sphere(glm::vec3(5, -1, -15), 2,
+            {glm::vec3(.9f, .76f, .46f), glm::vec3(.9f, .76f, .46f), glm::vec3(.7f, .7f, .7f), 128.f}));
+    shapes.push_back(new Sphere(glm::vec3(5, 0, -25), 3,
+            {glm::vec3(.65f, .77f, .97f), glm::vec3(.65f, .77f, .97f), glm::vec3(.7f, .7f, .7f), 128.f}));
+    shapes.push_back(new Sphere(glm::vec3(-5.5, 0, -15), 3,
+            {glm::vec3(.9f, .9f, .9f), glm::vec3(.9f, .9f, .9f), glm::vec3(.7f, .7f, .7f), 128.f}));
 
     // Triangle
     // shapes.push_back(new Triangle(new glm::vec3[3]{glm::vec3(0, 1, -2), glm::vec3(-1.9, -1, -2), glm::vec3(1.6, -0.5, -2)}, glm::vec3(.6, .3, .5)));
 
     // Floor
-    shapes.push_back(new Plane(glm::vec3(0, -10, 0), glm::vec3(0, -1, 0), glm::vec3(.2, .2, .2)));
+    // shapes.push_back(new Plane(glm::vec3(0, -10, 0), glm::vec3(0, -1, 0), glm::vec3(.2, .2, .2)));
 
     // Teapot
 //    std::vector<glm::vec3> vertices;

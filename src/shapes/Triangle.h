@@ -10,7 +10,7 @@ private:
 public:
     bool intersects(Ray *ray, float *distance) override;
 
-    Triangle(glm::vec3 *vertices, const glm::vec3 &colour);
+    Triangle(glm::vec3 *vertices, Material material);
     ~Triangle();
 };
 

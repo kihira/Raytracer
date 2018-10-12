@@ -23,9 +23,7 @@ bool Triangle::intersects(Ray *ray, float *distance) {
     return true;
 }
 
-Triangle::Triangle(glm::vec3 *vertices, const glm::vec3 &colour) : vertices(vertices) {
-    this->colour = colour;
-}
+Triangle::Triangle(glm::vec3 *vertices, Material material) : Shape(material), vertices(vertices) {}
 
 Triangle::~Triangle() {
     delete[] vertices;
