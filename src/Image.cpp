@@ -12,11 +12,6 @@ glm::vec3* Image::getData() const {
     return data;
 }
 
-glm::vec3 &Image::operator[](int i) {
-    // todo this doesn't work
-    return data[i];
-}
-
 Image::Image(int width, int height, const glm::vec3 background) : width(width), height(height), background(background) {
     data = new glm::vec3[width * height];
 }
@@ -27,4 +22,21 @@ Image::~Image() {
 
 const glm::vec3 &Image::getBackground() const {
     return background;
+}
+
+void Image::resize(int newWidth, int newHeight) {
+    width = newWidth;
+    height = newHeight;
+
+    // Delete old data and recreate
+    delete[] data;
+    data = new glm::vec3[width * height];
+}
+
+int Image::getWidth() const {
+    return width;
+}
+
+int Image::getHeight() const {
+    return height;
 }

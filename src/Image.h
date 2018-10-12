@@ -38,7 +38,11 @@ public:
      */
     const glm::vec3 &getBackground() const;
 
-    glm::vec3 &operator[](int i);
+    void resize(int newWidth, int newHeight);
+
+    int getWidth() const;
+
+    int getHeight() const;
 
     Image(int width, int height, const glm::vec3 background);
 

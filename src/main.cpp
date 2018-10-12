@@ -14,14 +14,13 @@
 
 #define THREADS 4
 
-const int WIDTH = 640;
-const int HEIGHT = 480;
 const float FOV = 120;
 const glm::vec3 CAMERA(0, 0, 0);
 
-std::vector<Shape*> shapes;
+Image *image;
+std::vector<Shape *> shapes;
 
-static const char* vertexShaderSource = R"(
+static const char *vertexShaderSource = R"(
 #version 330
 layout (location = 0) in vec2 pos;
 out vec2 uv;
@@ -30,7 +29,7 @@ void main() {
     gl_Position = vec4(pos, 0, 1);
 })";
 
-static const char* fragmentShaderSource = R"(
+static const char *fragmentShaderSource = R"(
 #version 330
 in vec2 uv;
 uniform sampler2D tex;
@@ -56,15 +55,16 @@ void glErrorCheck() {
     }
 }
 
-void write(glm::vec3 **image) {
+void write(Image *image) {
     std::ofstream ofs("./untitled.ppm", std::ios::out | std::ios::binary);
-    ofs << "P6\n" << WIDTH << " " << HEIGHT << "\n255\n";
+    ofs << "P6\n" << image->getWidth() << " " << image->getHeight() << "\n255\n";
 
-    for (int y = 0; y < HEIGHT; ++y) {
-        for (int x = 0; x < WIDTH; ++x) {
-            ofs << (unsigned char)(image[x][y].x * 255)
-                << (unsigned char)(image[x][y].y * 255)
-                << (unsigned char)(image[x][y].z * 255);
+    for (int y = 0; y < image->getHeight(); ++y) {
+        for (int x = 0; x < image->getWidth(); ++x) {
+            glm::vec3 data = image->getValue(x, y);
+            ofs << (unsigned char)(data.x * 255)
+                << (unsigned char)(data.y * 255)
+                << (unsigned char)(data.z * 255);
         }
     }
 
@@ -72,14 +72,14 @@ void write(glm::vec3 **image) {
 }
 
 static void raycast(Image *image, int xStart, int xCount) {
-    float aspectRatio = (float) WIDTH / HEIGHT;
+    float aspectRatio = (float) image->getWidth() / image->getHeight();
     float fovHalfTan = tanf(glm::radians(FOV) / 2.f);
 
     for (int x = xStart; x < xStart + xCount; ++x) {
-        for (int y = 0; y < HEIGHT; ++y) {
+        for (int y = 0; y < image->getHeight(); ++y) {
             // Remap to 0:1
-            float xNormalised = (x + 0.5f) / WIDTH;
-            float yNormalised = (y + 0.5f) / HEIGHT;
+            float xNormalised = (x + 0.5f) / image->getWidth();
+            float yNormalised = (y + 0.5f) / image->getHeight();
 
             // Remap to -1:1
             float xRemapped = (2.f * xNormalised - 1.f) * aspectRatio;
@@ -110,7 +110,7 @@ void renderScene(Image *image) {
     std::cout << "Starting render..." << std::endl;
 
     std::thread threads[THREADS];
-    int xPortions = WIDTH / 4;
+    int xPortions = image->getWidth() / 4;
     milliseconds startTime = duration_cast<milliseconds>(system_clock::now().time_since_epoch());
 
     // Need to run these in a lambda to capture the functions and variables
@@ -124,7 +124,7 @@ void renderScene(Image *image) {
     }
 
     // Write image to texture (Don't need to rebind, should be bound)
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, WIDTH, HEIGHT, 0, GL_RGB, GL_FLOAT, image->getData());
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, image->getWidth(), image->getHeight(), 0, GL_RGB, GL_FLOAT, image->getData());
     glErrorCheck();
 
     std::cout << "Render complete in " << (duration_cast<milliseconds>(system_clock::now().time_since_epoch()) - startTime).count() << "ms" << std::endl;
@@ -153,9 +153,11 @@ inline void initScene() {
 //    }
 }
 
-// todo resize image
 void glfwFramebufferSizeCallback(GLFWwindow *window, int width, int height) {
     glViewport(0, 0, width, height);
+    image->resize(width, height);
+
+    renderScene(image);
 }
 
 int main() {
@@ -174,7 +176,7 @@ int main() {
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, true);
 #endif
 
-    window = glfwCreateWindow(WIDTH, HEIGHT, "322COM Raycaster", nullptr, nullptr);
+    window = glfwCreateWindow(640, 480, "322COM Raycaster", nullptr, nullptr);
     if (!window) {
         glfwTerminate();
         return -1;
@@ -189,7 +191,9 @@ int main() {
     glfwSwapInterval(1);
 
     // Create image/texture raycaster will write to
-    auto image = new Image(WIDTH, HEIGHT, glm::vec3(1.f, 1.f, 1.f));
+    int width, height;
+    glfwGetFramebufferSize(window, &width, &height);
+    image = new Image(width, height, glm::vec3(1.f, 1.f, 1.f));
 
     // Generate basic shader program
     vertexShader = glCreateShader(GL_VERTEX_SHADER);
