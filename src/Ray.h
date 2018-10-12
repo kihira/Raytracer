@@ -1,8 +1,10 @@
 #ifndef INC_322COM_RAYCASTER_RAY_H
 #define INC_322COM_RAYCASTER_RAY_H
 
-
+#include <vector>
 #include <glm.hpp>
+
+class Shape; // Forward declaration
 
 class Ray {
 public:
@@ -10,6 +12,7 @@ public:
     glm::vec3 origin;
 
     Ray(const glm::vec3 &direction, const glm::vec3 &origin);
+    bool cast(std::vector<Shape *> &shapes, Shape **hitShape);
 };
 
 

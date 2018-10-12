@@ -73,34 +73,28 @@ void write(glm::vec3 **image) {
 
 static void raycast(Image *image, int xStart, int xCount) {
     float aspectRatio = (float) WIDTH / HEIGHT;
+    float fovHalfTan = tanf(glm::radians(FOV) / 2.f);
 
     for (int x = xStart; x < xStart + xCount; ++x) {
         for (int y = 0; y < HEIGHT; ++y) {
-            // todo should move this into the Ray class
             // Remap to 0:1
             float xNormalised = (x + 0.5f) / WIDTH;
             float yNormalised = (y + 0.5f) / HEIGHT;
 
             // Remap to -1:1
-            float xRemapped = (2 * xNormalised - 1) * aspectRatio;
-            float yRemapped = 1 - 2 * yNormalised;
+            float xRemapped = (2.f * xNormalised - 1.f) * aspectRatio;
+            float yRemapped = 1.f - 2.f * yNormalised;
 
-            float xCamera = xRemapped * tanf(glm::radians(FOV) / 2);
-            float yCamera = yRemapped * tanf(glm::radians(FOV) / 2);
+            float xCamera = xRemapped * fovHalfTan;
+            float yCamera = yRemapped * fovHalfTan;
 
             glm::vec3 cameraSpace(xCamera, yCamera, -1);
             Ray *ray = new Ray(glm::normalize(cameraSpace - CAMERA), CAMERA);
 
             // Loop through the shapes and see if we hit
-            Shape* shapeClosest = nullptr;
-            float shapeClosestDist = 1000;
-            float distance = 1000.f;
-            for (auto& shape : shapes) {
-                if (shape->intersects(ray, &distance) && distance < shapeClosestDist) {
-                    shapeClosest = shape;
-                    shapeClosestDist = distance;
-                }
-            }
+            Shape *shapeClosest = nullptr;
+            ray->cast(shapes, &shapeClosest);
+
             if (shapeClosest != nullptr) {
                 image->setValue(x, y, shapeClosest->colour);
             }
