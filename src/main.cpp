@@ -15,7 +15,7 @@
 #define THREADS 4
 
 const float FOV = 120;
-const glm::vec3 CAMERA(0, 0, 0);
+glm::vec3 CAMERA(0, 0, 0);
 
 Image *image;
 std::vector<Shape *> shapes;
@@ -153,6 +153,31 @@ inline void initScene() {
 //    }
 }
 
+void glfwKeyCallback(GLFWwindow *window, int key, int scancode, int action, int mods) {
+    if (action != GLFW_PRESS) return;
+
+    switch (key) {
+        case GLFW_KEY_W:
+            CAMERA.z += .1f;
+            break;
+        case GLFW_KEY_S:
+            CAMERA.z -= .1f;
+            break;
+        case GLFW_KEY_A:
+            CAMERA.x += .1f;
+            break;
+        case GLFW_KEY_D:
+            CAMERA.x -= .1f;
+            break;
+        case GLFW_KEY_R:
+            CAMERA.y -= .1f;
+            break;
+        case GLFW_KEY_F:
+            CAMERA.y += .1f;
+            break;
+    }
+}
+
 void glfwFramebufferSizeCallback(GLFWwindow *window, int width, int height) {
     glViewport(0, 0, width, height);
     image->resize(width, height);
@@ -183,12 +208,15 @@ int main() {
     }
 
     glfwMakeContextCurrent(window);
-    glfwSetFramebufferSizeCallback(window, glfwFramebufferSizeCallback);
     if (!gladLoadGLLoader((GLADloadproc) glfwGetProcAddress)) {
         std::cerr << "Failed to load GLAD" << std::endl;
         return -1;
     }
     glfwSwapInterval(1);
+
+    // Setup callbacks
+    glfwSetFramebufferSizeCallback(window, glfwFramebufferSizeCallback);
+    glfwSetKeyCallback(window, glfwKeyCallback);
 
     // Create image/texture raycaster will write to
     int width, height;
@@ -240,14 +268,15 @@ int main() {
         glClear(GL_COLOR_BUFFER_BIT);
 
         // Render
-        // renderScene(image);
+        renderScene(image);
 
         // Draw result
         glDrawArrays(GL_TRIANGLES, 0, 6);
         glErrorCheck();
 
         glfwSwapBuffers(window);
-        glfwPollEvents();
+        //glfwPollEvents();
+        glfwWaitEvents(); // Wait for new input before rendering
     }
 
     // Cleanup resources
