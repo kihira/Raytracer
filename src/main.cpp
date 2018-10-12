@@ -6,6 +6,7 @@
 #include <GLFW/glfw3.h>
 #include <ext.hpp>
 #include <thread>
+#include <objloader.h>
 #include "shapes/Sphere.h"
 #include "shapes/Plane.h"
 #include "Image.h"
@@ -116,10 +117,19 @@ inline void initScene() {
     shapes.push_back(new Sphere(glm::vec3(-5.5, 0, -15), 3, glm::vec3(.9, .9, .9)));
 
     // Triangle
-    shapes.push_back(new Triangle(new glm::vec3[3]{glm::vec3(0, 1, -2), glm::vec3(-1.9, -1, -2), glm::vec3(1.6, -0.5, -2)}, glm::vec3(.6, .3, .5)));
+    // shapes.push_back(new Triangle(new glm::vec3[3]{glm::vec3(0, 1, -2), glm::vec3(-1.9, -1, -2), glm::vec3(1.6, -0.5, -2)}, glm::vec3(.6, .3, .5)));
 
     // Floor
     shapes.push_back(new Plane(glm::vec3(0, -10, 0), glm::vec3(0, -1, 0), glm::vec3(.2, .2, .2)));
+
+    // Teapot
+    std::vector<glm::vec3> vertices;
+    std::vector<glm::vec3> normals;
+    glm::vec3 teapotColor(.6, .3, .5);
+    loadOBJ("./teapot_simple.obj", vertices, normals);
+    for (int i = 0; i < vertices.size(); i+=3) {
+        shapes.push_back(new Triangle(&vertices[i], teapotColor));
+    }
 }
 
 void glfwFramebufferSizeCallback(GLFWwindow *window, int width, int height) {
@@ -197,6 +207,7 @@ int main() {
 
     initScene();
 
+    std::cout << "Starting render..." << std::endl;
     std::thread threads[THREADS];
     int xPortions = WIDTH / 4;
     // Need to run these in a lambda to capture the functions and variables
