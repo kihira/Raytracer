@@ -5,10 +5,13 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <ext.hpp>
+#include <thread>
 #include "shapes/Sphere.h"
 #include "shapes/Plane.h"
 #include "Image.h"
 #include "shapes/Triangle.h"
+
+#define THREADS 4
 
 const int WIDTH = 640;
 const int HEIGHT = 480;
@@ -68,10 +71,10 @@ void write(glm::vec3 **image) {
     ofs.close();
 }
 
-void raycast(Image *image) {
-    float aspectRatio = WIDTH / HEIGHT;
+static void raycast(Image *image, int xStart, int xCount) {
+    float aspectRatio = (float) WIDTH / HEIGHT;
 
-    for (int x = 0; x < WIDTH; ++x) {
+    for (int x = xStart; x < xStart + xCount; ++x) {
         for (int y = 0; y < HEIGHT; ++y) {
             // todo should move this into the Ray class
             // Remap to 0:1
@@ -194,13 +197,25 @@ int main() {
 
     initScene();
 
+    std::thread threads[THREADS];
+    int xPortions = WIDTH / 4;
+    // Need to run these in a lambda to capture the functions and variables
+    threads[0] = std::thread([image, xPortions](){ return raycast(image, 0, xPortions);});
+    threads[1] = std::thread([image, xPortions](){ return raycast(image, xPortions, xPortions);});
+    threads[2] = std::thread([image, xPortions](){ return raycast(image, xPortions * 2, xPortions);});
+    threads[3] = std::thread([image, xPortions](){ return raycast(image, xPortions * 3, xPortions);});
+
+    for (auto &thread : threads) {
+        thread.join();
+    }
+
     // Update loop
     while (!glfwWindowShouldClose(window)) {
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
 
         // Raycast
-        raycast(image);
+//        raycast(image);
 
         // Write image to texture (Don't need to rebind, should be bound)
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, WIDTH, HEIGHT, 0, GL_RGB, GL_FLOAT, image->getData());
