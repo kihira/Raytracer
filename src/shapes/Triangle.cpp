@@ -10,21 +10,25 @@ bool Triangle::intersects(Ray *ray, float *distance) {
     // Aiming in the same direction so we're only seeing the back
     if (det < 1e-6) return false;
 
+    float invDet = 1.f / det;
     glm::vec3 oa = ray->origin - vertices[0];
 
     // Calculate u and test
-    float u = glm::dot(oa, de2);
-    if (u < 0 || u > det) return false;
+    u = glm::dot(oa, de2) * invDet;
+    if (u < 0 || u > 1) return false;
 
-    float v = glm::dot(ray->direction, glm::cross(oa, e1));
-    if (v < 0 || u + v > det) return false;
+    v = glm::dot(ray->direction, glm::cross(oa, e1)) * invDet;
+    if (v < 0 || u + v > 1) return false;
 
-    *distance = glm::dot(e2, glm::cross(oa, e1)) * (1.0 - det);
+    *distance = glm::dot(e2, glm::cross(oa, e1)) * invDet;
     return true;
 }
 
-Triangle::Triangle(glm::vec3 *vertices, Material material) : Shape(material), vertices(vertices) {}
+Triangle::Triangle(glm::vec3 *vertices, glm::vec3 *normals, Material material) : Shape(material), vertices(vertices), normals(normals) {}
 
-Triangle::~Triangle() {
-    delete[] vertices;
+glm::vec3 Triangle::getNormal(glm::vec3 &intersectionPoint) {
+    // u and v were calculated earlier, now we can just calculate w
+    w = 1.f - u - v;
+
+    return glm::normalize(w * normals[0] + u * normals[1] + v * normals[2]);
 }

@@ -51,7 +51,7 @@ std::vector<Shape *> shapes;
 // Lights
 glm::vec3 ambientIntensity(.2f, .2f, .2f);
 
-glm::vec3 pointLightPosition(0, 20, 0);
+glm::vec3 pointLightPosition(1, 3, 1);
 glm::vec3 pointLightIntensity(1.f, 1.f, 1.f);
 
 void glErrorCheck() {
@@ -77,14 +77,12 @@ void write(Image *image) {
     ofs.close();
 }
 
-// TODO calculate why specular is not working correctly.
-//  reflection spot is located in the wrong position
 glm::vec3 calculateLighting(Ray *ray, Shape *shape, float distance) {
     glm::vec3 intersectionPoint = ray->direction * distance;
     glm::vec3 normal = shape->getNormal(intersectionPoint);
     glm::vec3 lightRay = glm::normalize(pointLightPosition - intersectionPoint);
     glm::vec3 reflection = 2.f * glm::dot(lightRay, normal) * normal - lightRay;
-    glm::vec3 viewDir = ray->direction * 1.f;
+    glm::vec3 viewDir = ray->direction * -1.f;
     Material mat = shape->getMaterial();
 
     glm::vec3 colour(0.f, 0.f, 0.f);
@@ -123,6 +121,7 @@ static void raycast(Image *image, int xStart, int xCount) {
             if (shapeClosest != nullptr) {
                 // Calculate lighting
                 image->setValue(x, y, calculateLighting(ray, shapeClosest, distance));
+                // image->setValue(x, y, shapeClosest->getMaterial().diffuse);
             }
             else {
                 image->setValue(x, y, image->getBackground());
@@ -135,6 +134,7 @@ void renderScene(Image *image) {
     using namespace std::chrono;
     std::cout << "Starting render..." << std::endl;
 
+#ifdef MULTITHREAD
     std::thread threads[THREADS];
     int xPortions = image->getWidth() / 4;
     milliseconds startTime = duration_cast<milliseconds>(system_clock::now().time_since_epoch());
@@ -148,30 +148,38 @@ void renderScene(Image *image) {
     for (auto &thread : threads) {
         thread.join();
     }
+#else
+    raycast(image, 0, image->getWidth());
+#endif
 
     // Write image to texture (Don't need to rebind, should be bound)
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, image->getWidth(), image->getHeight(), 0, GL_RGB, GL_FLOAT, image->getData());
     glErrorCheck();
 
-    std::cout << "Render complete in " << (duration_cast<milliseconds>(system_clock::now().time_since_epoch()) - startTime).count() << "ms" << std::endl;
+    std::cout << "Render Details" << std::endl << "================" << std::endl;
+    std::cout << "Time: " << (duration_cast<milliseconds>(system_clock::now().time_since_epoch()) - startTime).count() << "ms" << std::endl;
 }
 
 inline void initScene() {
     // Create spheres
-    shapes.push_back(new Sphere(glm::vec3(0, 0, -20), 4,
-            {glm::vec3(1.f, .32f, .36f), glm::vec3(1.f, .32f, .36f), glm::vec3(.7f, .7f, .7f), 128.f}));
-    shapes.push_back(new Sphere(glm::vec3(5, -1, -15), 2,
-            {glm::vec3(.9f, .76f, .46f), glm::vec3(.9f, .76f, .46f), glm::vec3(.7f, .7f, .7f), 128.f}));
-    shapes.push_back(new Sphere(glm::vec3(5, 0, -25), 3,
-            {glm::vec3(.65f, .77f, .97f), glm::vec3(.65f, .77f, .97f), glm::vec3(.7f, .7f, .7f), 128.f}));
-    shapes.push_back(new Sphere(glm::vec3(-5.5, 0, -15), 3,
-            {glm::vec3(.9f, .9f, .9f), glm::vec3(.9f, .9f, .9f), glm::vec3(.7f, .7f, .7f), 128.f}));
+//    shapes.push_back(new Sphere(glm::vec3(0, 0, -20), 4,
+//                                {glm::vec3(1.f, .32f, .36f), glm::vec3(1.f, .32f, .36f), glm::vec3(.7f, .7f, .7f), 128.f}));
+//    shapes.push_back(new Sphere(glm::vec3(5, -1, -15), 2,
+//                                {glm::vec3(.9f, .76f, .46f), glm::vec3(.9f, .76f, .46f), glm::vec3(.7f, .7f, .7f), 128.f}));
+//    shapes.push_back(new Sphere(glm::vec3(5, 0, -25), 3,
+//                                {glm::vec3(.65f, .77f, .97f), glm::vec3(.65f, .77f, .97f), glm::vec3(.7f, .7f, .7f), 128.f}));
+//    shapes.push_back(new Sphere(glm::vec3(-5.5, 0, -15), 3,
+//                                {glm::vec3(.9f, .9f, .9f), glm::vec3(.9f, .9f, .9f), glm::vec3(.7f, .7f, .7f), 128.f}));
 
     // Triangle
-    // shapes.push_back(new Triangle(new glm::vec3[3]{glm::vec3(0, 1, -2), glm::vec3(-1.9, -1, -2), glm::vec3(1.6, -0.5, -2)}, glm::vec3(.6, .3, .5)));
+    shapes.push_back(new Triangle(
+            new glm::vec3[3]{glm::vec3(0.f, 1.f, -2.f), glm::vec3(-1.9f, -1.f, -2.f), glm::vec3(1.6f, -.5f, -2.f)},
+            new glm::vec3[3]{glm::vec3(0.f, .6f, 1.f), glm::vec3(-.4f, -.4f, 1.f), glm::vec3(.4f, -.4f, 1.f)},
+            {glm::vec3(.5f, .5f, 0.f), glm::vec3(.5f, .5f, 0.f), glm::vec3(.7f, .7f, .7f), 100}));
 
     // Floor
-    // shapes.push_back(new Plane(glm::vec3(0, -10, 0), glm::vec3(0, -1, 0), glm::vec3(.2, .2, .2)));
+//    shapes.push_back(new Plane(glm::vec3(0, -10, 0), glm::vec3(0, -1, 0),
+//                               {glm::vec3(.2f, .2f, .2f), glm::vec3(.2f, .2f, .2f), glm::vec3(.7f, .7f, .7f)}));
 
     // Teapot
 //    std::vector<glm::vec3> vertices;
