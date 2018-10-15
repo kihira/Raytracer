@@ -84,12 +84,13 @@ glm::vec3 calculateLighting(Ray *ray, Shape *shape, float distance) {
     glm::vec3 normal = shape->getNormal(intersectionPoint);
     glm::vec3 lightRay = glm::normalize(pointLightPosition - intersectionPoint);
     glm::vec3 reflection = 2.f * glm::dot(lightRay, normal) * normal - lightRay;
+    glm::vec3 viewDir = ray->direction * 1.f;
     Material mat = shape->getMaterial();
 
     glm::vec3 colour(0.f, 0.f, 0.f);
     colour += mat.ambient * ambientIntensity; // Ambient
     colour += mat.diffuse * (pointLightIntensity * fmax(0.f, glm::dot(lightRay, normal))); // Diffuse
-    colour += mat.specular * pointLightIntensity * pow(fmax(0.f, glm::dot(reflection, ray->direction)), mat.shininess); // Specular
+    colour += mat.specular * pointLightIntensity * pow(fmax(0.f, glm::dot(reflection, viewDir)), mat.shininess); // Specular
 
     return colour;
 }
