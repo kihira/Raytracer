@@ -1,5 +1,6 @@
 #include "Triangle.h"
 
+// TODO BUG This doesn't work in multithread as we're writing to u and v across multiple threads
 bool Triangle::intersects(Ray *ray, float *distance) {
     glm::vec3 e1 = vertices[1] - vertices[0];
     glm::vec3 e2 = vertices[2] - vertices[0];
