@@ -20,3 +20,7 @@ bool Ray::cast(std::vector<Shape *> &shapes, Shape **hitShape, float *hitDistanc
     }
     return *hitShape != nullptr;
 }
+
+void Ray::setDirection(const glm::vec3 &direction) {
+    Ray::direction = direction;
+}

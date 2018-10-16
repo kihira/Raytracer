@@ -15,6 +15,7 @@
 #define THREADS 4
 #define RENDER_ON_UPDATE false
 #define MULTITHREAD true
+// #define LIGHTING true
 
 static const char *vertexShaderSource = R"(
 #version 330
@@ -80,6 +81,7 @@ void write(Image *image) {
 }
 
 glm::vec3 calculateLighting(Ray *ray, Shape *shape, float distance) {
+#ifdef LIGHTING
     Material mat = shape->getMaterial();
     glm::vec3 intersectionPoint = ray->direction * distance;
     glm::vec3 lightRay = glm::normalize(pointLightPosition - intersectionPoint);
@@ -104,27 +106,29 @@ glm::vec3 calculateLighting(Ray *ray, Shape *shape, float distance) {
               pow(fmax(0.f, glm::dot(reflection, viewDir)), mat.shininess); // Specular
 
     return colour;
+#else
+    return shape->getMaterial().diffuse;
+#endif
 }
 
 static void raycast(Image *image, int xStart, int xCount) {
     float aspectRatio = (float) image->getWidth() / image->getHeight();
     float fovHalfTan = tanf(glm::radians(FOV) / 2.f);
+    glm::vec2 normalised, remapped;
+    Ray *ray = new Ray(CAMERA, CAMERA);
 
     for (int x = xStart; x < xStart + xCount; ++x) {
         for (int y = 0; y < image->getHeight(); ++y) {
             // Remap to 0:1
-            float xNormalised = (x + 0.5f) / image->getWidth();
-            float yNormalised = (y + 0.5f) / image->getHeight();
+            normalised.x = (x + 0.5f) / image->getWidth();
+            normalised.y = (y + 0.5f) / image->getHeight();
 
             // Remap to -1:1
-            float xRemapped = (2.f * xNormalised - 1.f) * aspectRatio;
-            float yRemapped = 1.f - 2.f * yNormalised;
+            remapped.x = (2.f * normalised.x - 1.f) * aspectRatio;
+            remapped.y = 1.f - 2.f * normalised.y;
 
-            float xCamera = xRemapped * fovHalfTan;
-            float yCamera = yRemapped * fovHalfTan;
-
-            glm::vec3 cameraSpace(xCamera, yCamera, -1);
-            Ray *ray = new Ray(CAMERA, glm::normalize(cameraSpace - CAMERA));
+            glm::vec3 cameraSpace(remapped.x * fovHalfTan, remapped.y * fovHalfTan, -1);
+            ray->setDirection(glm::normalize(cameraSpace - CAMERA));
 
             // Loop through the shapes and see if we hit
             Shape *shapeClosest = nullptr;
@@ -132,14 +136,13 @@ static void raycast(Image *image, int xStart, int xCount) {
 
             if (ray->cast(shapes, &shapeClosest, &distance)) {
                 // Calculate lighting
-                // image->setValue(x, y, calculateLighting(ray, shapeClosest, distance));
-                image->setValue(x, y, shapeClosest->getMaterial().diffuse);
+                image->setValue(x, y, calculateLighting(ray, shapeClosest, distance));
             } else {
                 image->setValue(x, y, image->getBackground());
             }
-            delete ray;
         }
     }
+    delete ray;
 }
 
 void renderScene(Image *image) {
