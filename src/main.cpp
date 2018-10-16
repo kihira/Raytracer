@@ -111,11 +111,47 @@ glm::vec3 calculateLighting(Ray *ray, Shape *shape, float distance) {
 #endif
 }
 
+/**
+ * Transforms a position into a world position
+ * @param world
+ * @param origin
+ * @param out
+ * @return
+ */
+glm::vec3 &getWorldOrigin(glm::mat4 &world, glm::vec3 &origin, glm::vec3 &out) {
+    float w = origin[0] * world[0][3] + origin[1] * world[1][3] + origin[2] * world[2][3] + world[3][3];
+    out.x = origin[0] * world[0][0] + origin[1] * world[1][0] + origin[2] * world[2][0] + world[3][0];
+    out.y = origin[0] * world[0][1] + origin[1] * world[1][1] + origin[2] * world[2][1] + world[3][1];
+    out.z = origin[0] * world[0][2] + origin[1] * world[1][2] + origin[2] * world[2][2] + world[3][2];
+
+    out.x /= w;
+    out.y /= w;
+    out.z /= w;
+    return out;
+}
+
+/**
+ * Transform a direction into a world direction
+ * @param world
+ * @param dir
+ * @param out
+ * @return
+ */
+glm::vec3 &getWorldDirection(glm::mat4 &world, glm::vec3 &dir, glm::vec3 &out) {
+    out.x = dir[0] * world[0][0] + dir[1] * world[1][0] + dir[2] * world[2][0];
+    out.y = dir[0] * world[0][1] + dir[1] * world[1][1] + dir[2] * world[2][1];
+    out.z = dir[0] * world[0][2] + dir[1] * world[1][2] + dir[2] * world[2][2];
+
+    return out;
+}
+
 static void raycast(Image *image, int xStart, int xCount) {
     float aspectRatio = (float) image->getWidth() / image->getHeight();
     float fovHalfTan = tanf(glm::radians(FOV) / 2.f);
+    glm::mat4 camToWorld(1.f);
     glm::vec2 normalised, remapped;
-    Ray *ray = new Ray(CAMERA, CAMERA);
+    glm::vec3 rayOrigin, rayDirection;
+    Ray *ray = new Ray(getWorldOrigin(camToWorld, CAMERA, rayOrigin), CAMERA);
 
     for (int x = xStart; x < xStart + xCount; ++x) {
         for (int y = 0; y < image->getHeight(); ++y) {
@@ -128,7 +164,7 @@ static void raycast(Image *image, int xStart, int xCount) {
             remapped.y = 1.f - 2.f * normalised.y;
 
             glm::vec3 cameraSpace(remapped.x * fovHalfTan, remapped.y * fovHalfTan, -1);
-            ray->setDirection(glm::normalize(cameraSpace - CAMERA));
+            ray->setDirection(glm::normalize(getWorldDirection(camToWorld, cameraSpace, rayDirection)));
 
             // Loop through the shapes and see if we hit
             Shape *shapeClosest = nullptr;
@@ -179,14 +215,14 @@ void renderScene(Image *image) {
 
 inline void initScene() {
     // Create spheres
-//    shapes.push_back(new Sphere(glm::vec3(0, 0, -20), 4,
-//                                {glm::vec3(1.f, .32f, .36f), glm::vec3(1.f, .32f, .36f), glm::vec3(.7f, .7f, .7f), 128.f}));
-//    shapes.push_back(new Sphere(glm::vec3(5, -1, -15), 2,
-//                                {glm::vec3(.9f, .76f, .46f), glm::vec3(.9f, .76f, .46f), glm::vec3(.7f, .7f, .7f), 128.f}));
-//    shapes.push_back(new Sphere(glm::vec3(5, 0, -25), 3,
-//                                {glm::vec3(.65f, .77f, .97f), glm::vec3(.65f, .77f, .97f), glm::vec3(.7f, .7f, .7f), 128.f}));
-//    shapes.push_back(new Sphere(glm::vec3(-5.5, 0, -15), 3,
-//                                {glm::vec3(.9f, .9f, .9f), glm::vec3(.9f, .9f, .9f), glm::vec3(.7f, .7f, .7f), 128.f}));
+    shapes.push_back(new Sphere(glm::vec3(0, 0, -20), 4,
+                                {glm::vec3(1.f, .32f, .36f), glm::vec3(1.f, .32f, .36f), glm::vec3(.7f, .7f, .7f), 128.f}));
+    shapes.push_back(new Sphere(glm::vec3(5, -1, -15), 2,
+                                {glm::vec3(.9f, .76f, .46f), glm::vec3(.9f, .76f, .46f), glm::vec3(.7f, .7f, .7f), 128.f}));
+    shapes.push_back(new Sphere(glm::vec3(5, 0, -25), 3,
+                                {glm::vec3(.65f, .77f, .97f), glm::vec3(.65f, .77f, .97f), glm::vec3(.7f, .7f, .7f), 128.f}));
+    shapes.push_back(new Sphere(glm::vec3(-5.5, 0, -15), 3,
+                                {glm::vec3(.9f, .9f, .9f), glm::vec3(.9f, .9f, .9f), glm::vec3(.7f, .7f, .7f), 128.f}));
 
     // Triangle
 //    shapes.push_back(new Triangle(
@@ -199,18 +235,23 @@ inline void initScene() {
                                {glm::vec3(.8f, .8f, .8f), glm::vec3(.8f, .8f, .8f), glm::vec3(.7f, .7f, .7f), 0.f}));
 
     // Teapot
-    std::vector<glm::vec3> vertices;
-    std::vector<glm::vec3> normals;
-    Material teapotMat {
-        glm::vec3(.5f, .5f, 0.f),
-        glm::vec3(.5f, .5f, 0.f),
-        glm::vec3(.7f, .7f, .7f),
-        100.f
-    };
-    loadOBJ("./teapot_smooth.obj", vertices, normals);
-    for (int i = 0; i < vertices.size(); i+=3) {
-        shapes.push_back(new Triangle(&vertices[i], &normals[i], teapotMat));
-    }
+//    glm::vec3 teapotPosition(0, 0, -10);
+//    std::vector<glm::vec3> vertices;
+//    std::vector<glm::vec3> normals;
+//    Material teapotMat {
+//        glm::vec3(.5f, .5f, 0.f),
+//        glm::vec3(.5f, .5f, 0.f),
+//        glm::vec3(.7f, .7f, .7f),
+//        100.f
+//    };
+//    loadOBJ("./teapot_smooth.obj", vertices, normals);
+//    for (int i = 0; i < vertices.size(); i+=3) {
+//        // Offset vertices position
+//        vertices[i] += teapotPosition;
+//        vertices[i+1] += teapotPosition;
+//        vertices[i+2] += teapotPosition;
+//        shapes.push_back(new Triangle(&vertices[i], &normals[i], teapotMat));
+//    }
 }
 
 void glfwKeyCallback(GLFWwindow *window, int key, int scancode, int action, int mods) {
@@ -218,22 +259,22 @@ void glfwKeyCallback(GLFWwindow *window, int key, int scancode, int action, int 
 
     switch (key) {
         case GLFW_KEY_W:
-            CAMERA.z += .1f;
+            CAMERA.z -= 1.f;
             break;
         case GLFW_KEY_S:
-            CAMERA.z -= .1f;
+            CAMERA.z += 1.f;
             break;
         case GLFW_KEY_A:
-            CAMERA.x += .1f;
+            CAMERA.x -= 1.f;
             break;
         case GLFW_KEY_D:
-            CAMERA.x -= .1f;
-            break;
-        case GLFW_KEY_R:
-            CAMERA.y -= .1f;
+            CAMERA.x += 1.f;
             break;
         case GLFW_KEY_F:
-            CAMERA.y += .1f;
+            CAMERA.y -= 1.f;
+            break;
+        case GLFW_KEY_R:
+            CAMERA.y += 1.f;
             break;
         case GLFW_KEY_ENTER:
             renderScene(image);

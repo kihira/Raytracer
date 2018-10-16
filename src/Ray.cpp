@@ -13,7 +13,7 @@ bool Ray::cast(std::vector<Shape *> &shapes, Shape **hitShape, float *hitDistanc
         if (shape == ignore) {
             continue;
         }
-        if (shape->intersects(this, &distance) && distance < *hitDistance) {
+        if (shape->intersects(this, &distance) && distance > 0 && distance < *hitDistance) {
             *hitShape = shape;
             *hitDistance = distance;
         }
