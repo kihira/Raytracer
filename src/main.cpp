@@ -13,6 +13,8 @@
 #include "shapes/Triangle.h"
 
 #define THREADS 4
+#define RENDER_ON_UPDATE false
+#define MULTITHREAD true
 
 static const char *vertexShaderSource = R"(
 #version 330
@@ -51,7 +53,7 @@ std::vector<Shape *> shapes;
 // Lights
 glm::vec3 ambientIntensity(.2f, .2f, .2f);
 
-glm::vec3 pointLightPosition(1, 3, 1);
+glm::vec3 pointLightPosition(10, 10, 0);
 glm::vec3 pointLightIntensity(1.f, 1.f, 1.f);
 
 void glErrorCheck() {
@@ -78,12 +80,22 @@ void write(Image *image) {
 }
 
 glm::vec3 calculateLighting(Ray *ray, Shape *shape, float distance) {
+    Material mat = shape->getMaterial();
     glm::vec3 intersectionPoint = ray->direction * distance;
-    glm::vec3 normal = shape->getNormal(intersectionPoint);
     glm::vec3 lightRay = glm::normalize(pointLightPosition - intersectionPoint);
+
+    // Check if we are in shadow. If so, just return ambient colour;
+    Ray *shadowRay = new Ray(intersectionPoint, lightRay);
+    Shape *closestShape = nullptr;
+    if (shadowRay->cast(shapes, &closestShape, &distance, shape)) {
+        delete shadowRay;
+        return mat.ambient * ambientIntensity;
+    }
+    delete shadowRay;
+
+    glm::vec3 normal = shape->getNormal(intersectionPoint);
     glm::vec3 reflection = 2.f * glm::dot(lightRay, normal) * normal - lightRay;
     glm::vec3 viewDir = ray->direction * -1.f;
-    Material mat = shape->getMaterial();
 
     glm::vec3 colour(0.f, 0.f, 0.f);
     colour += mat.ambient * ambientIntensity; // Ambient
@@ -112,20 +124,20 @@ static void raycast(Image *image, int xStart, int xCount) {
             float yCamera = yRemapped * fovHalfTan;
 
             glm::vec3 cameraSpace(xCamera, yCamera, -1);
-            Ray *ray = new Ray(glm::normalize(cameraSpace - CAMERA), CAMERA);
+            Ray *ray = new Ray(CAMERA, glm::normalize(cameraSpace - CAMERA));
 
             // Loop through the shapes and see if we hit
             Shape *shapeClosest = nullptr;
             float distance;
-            ray->cast(shapes, &shapeClosest, &distance);
 
-            if (shapeClosest != nullptr) {
+            if (ray->cast(shapes, &shapeClosest, &distance)) {
                 // Calculate lighting
-                image->setValue(x, y, calculateLighting(ray, shapeClosest, distance));
-                // image->setValue(x, y, shapeClosest->getMaterial().diffuse);
+                // image->setValue(x, y, calculateLighting(ray, shapeClosest, distance));
+                image->setValue(x, y, shapeClosest->getMaterial().diffuse);
             } else {
                 image->setValue(x, y, image->getBackground());
             }
+            delete ray;
         }
     }
 }
@@ -164,18 +176,24 @@ void renderScene(Image *image) {
 
 inline void initScene() {
     // Create spheres
-    shapes.push_back(new Sphere(glm::vec3(0, 0, -20), 4,
-                                {glm::vec3(1.f, .32f, .36f), glm::vec3(1.f, .32f, .36f), glm::vec3(.7f, .7f, .7f), 128.f}));
-    shapes.push_back(new Sphere(glm::vec3(5, -1, -15), 2,
-                                {glm::vec3(.9f, .76f, .46f), glm::vec3(.9f, .76f, .46f), glm::vec3(.7f, .7f, .7f), 128.f}));
-    shapes.push_back(new Sphere(glm::vec3(5, 0, -25), 3,
-                                {glm::vec3(.65f, .77f, .97f), glm::vec3(.65f, .77f, .97f), glm::vec3(.7f, .7f, .7f), 128.f}));
-    shapes.push_back(new Sphere(glm::vec3(-5.5, 0, -15), 3,
-                                {glm::vec3(.9f, .9f, .9f), glm::vec3(.9f, .9f, .9f), glm::vec3(.7f, .7f, .7f), 128.f}));
+//    shapes.push_back(new Sphere(glm::vec3(0, 0, -20), 4,
+//                                {glm::vec3(1.f, .32f, .36f), glm::vec3(1.f, .32f, .36f), glm::vec3(.7f, .7f, .7f), 128.f}));
+//    shapes.push_back(new Sphere(glm::vec3(5, -1, -15), 2,
+//                                {glm::vec3(.9f, .76f, .46f), glm::vec3(.9f, .76f, .46f), glm::vec3(.7f, .7f, .7f), 128.f}));
+//    shapes.push_back(new Sphere(glm::vec3(5, 0, -25), 3,
+//                                {glm::vec3(.65f, .77f, .97f), glm::vec3(.65f, .77f, .97f), glm::vec3(.7f, .7f, .7f), 128.f}));
+//    shapes.push_back(new Sphere(glm::vec3(-5.5, 0, -15), 3,
+//                                {glm::vec3(.9f, .9f, .9f), glm::vec3(.9f, .9f, .9f), glm::vec3(.7f, .7f, .7f), 128.f}));
+
+    // Triangle
+//    shapes.push_back(new Triangle(
+//            new glm::vec3[3]{{0, 1, -2}, {-1.9, -1, -2}, {1.6, -0.5, -2}},
+//            new glm::vec3[3]{{0, 0.6, 1}, {-0.4, -0.4, 1}, {0.4, -0.4, 1}},
+//            {{0.5, 0.5, 0}, {0.5, 0.5, 0}, {0.7, 0.7, 0.7}, 100}));
 
     // Floor
-    shapes.push_back(new Plane(glm::vec3(0, -10, 0), glm::vec3(0, -1, 0),
-                               {glm::vec3(.2f, .2f, .2f), glm::vec3(.2f, .2f, .2f), glm::vec3(.7f, .7f, .7f)}));
+    shapes.push_back(new Plane(glm::vec3(0, -5, 0), glm::vec3(0, -1, 0),
+                               {glm::vec3(.8f, .8f, .8f), glm::vec3(.8f, .8f, .8f), glm::vec3(.7f, .7f, .7f), 0.f}));
 
     // Teapot
     std::vector<glm::vec3> vertices;
@@ -214,6 +232,10 @@ void glfwKeyCallback(GLFWwindow *window, int key, int scancode, int action, int 
         case GLFW_KEY_F:
             CAMERA.y += .1f;
             break;
+        case GLFW_KEY_ENTER:
+            renderScene(image);
+            break;
+        default:break;
     }
 }
 
@@ -307,7 +329,9 @@ int main() {
         glClear(GL_COLOR_BUFFER_BIT);
 
         // Render
+#if RENDER_ON_UPDATE
         renderScene(image);
+#endif
 
         // Draw result
         glDrawArrays(GL_TRIANGLES, 0, 6);

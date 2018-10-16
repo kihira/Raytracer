@@ -16,7 +16,7 @@ class Shape {
 public:
     explicit Shape(Material material);
 
-    virtual ~Shape() {};
+    virtual ~Shape() = default;
 
     virtual bool intersects(Ray *ray, float *distance) = 0;
 
