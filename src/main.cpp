@@ -11,6 +11,7 @@
 #include "shapes/Plane.h"
 #include "Image.h"
 #include "shapes/Triangle.h"
+#include "light.h"
 
 #define THREADS 4
 #define RENDER_ON_UPDATE false
@@ -50,13 +51,8 @@ glm::vec3 CAMERA(0, 0, 0);
 glm::mat4 camToWorld(1.f);
 
 Image *image;
+Light *light;
 std::vector<Shape *> shapes;
-
-// Lights
-glm::vec3 ambientIntensity(.2f, .2f, .2f);
-
-glm::vec3 pointLightPosition(10, 10, 0);
-glm::vec3 pointLightIntensity(1.f, 1.f, 1.f);
 
 void glErrorCheck() {
     GLuint err = glGetError();
@@ -85,14 +81,14 @@ glm::vec3 calculateLighting(Ray *ray, Shape *shape, float distance) {
 #ifdef LIGHTING
     Material mat = shape->getMaterial();
     glm::vec3 intersectionPoint = ray->direction * distance;
-    glm::vec3 lightRay = glm::normalize(pointLightPosition - intersectionPoint);
+    glm::vec3 lightRay = glm::normalize(light->getPosition() - intersectionPoint);
 
     // Check if we are in shadow. If so, just return ambient colour;
     Ray *shadowRay = new Ray(intersectionPoint, lightRay);
     Shape *closestShape = nullptr;
     if (shadowRay->cast(shapes, &closestShape, &distance, shape)) {
         delete shadowRay;
-        return mat.ambient * ambientIntensity;
+        return mat.ambient * light->getAmbientIntensity();
     }
     delete shadowRay;
 
@@ -101,9 +97,9 @@ glm::vec3 calculateLighting(Ray *ray, Shape *shape, float distance) {
     glm::vec3 viewDir = ray->direction * -1.f;
 
     glm::vec3 colour(0.f, 0.f, 0.f);
-    colour += mat.ambient * ambientIntensity; // Ambient
-    colour += mat.diffuse * (pointLightIntensity * fmax(0.f, glm::dot(lightRay, normal))); // Diffuse
-    colour += mat.specular * pointLightIntensity *
+    colour += mat.ambient * light->getAmbientIntensity(); // Ambient
+    colour += mat.diffuse * (light->getIntensity() * fmax(0.f, glm::dot(lightRay, normal))); // Diffuse
+    colour += mat.specular * light->getIntensity() *
               pow(fmax(0.f, glm::dot(reflection, viewDir)), mat.shininess); // Specular
 
     return colour;
@@ -256,6 +252,9 @@ inline void initScene() {
         vertices[i+2] += teapotPosition;
         shapes.push_back(new Triangle(&vertices[i], &normals[i], teapotMat));
     }
+
+    // Lights
+    light = new Light(glm::vec3(10.f, 10.f, 0.f), glm::vec3(.2f, .2f, .2f), glm::vec3(1.f, 1.f, 1.f));
 }
 
 void glfwKeyCallback(GLFWwindow *window, int key, int scancode, int action, int mods) {
