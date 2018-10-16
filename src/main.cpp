@@ -16,7 +16,7 @@
 #define THREADS 4
 #define RENDER_ON_UPDATE false
 #define MULTITHREAD true
-// #define LIGHTING true
+#define LIGHTING true
 
 static const char *vertexShaderSource = R"(
 #version 330
@@ -88,7 +88,7 @@ void write(Image *image) {
 glm::vec3 calculateLighting(Ray *ray, Shape *shape, float distance) {
 #ifdef LIGHTING
     Material mat = shape->getMaterial();
-    glm::vec3 intersectionPoint = ray->direction * distance;
+    glm::vec3 intersectionPoint = ray->origin + ray->direction * distance;
     glm::vec3 lightRay = glm::normalize(light->getPosition() - intersectionPoint);
 
     // Check if we are in shadow. If so, just return ambient colour;
@@ -188,14 +188,14 @@ void renderScene(Image *image) {
 
 inline void initScene() {
     // Create spheres
-//    shapes.push_back(new Sphere(glm::vec3(0, 0, -20), 4,
-//                                {glm::vec3(1.f, .32f, .36f), glm::vec3(1.f, .32f, .36f), glm::vec3(.7f, .7f, .7f), 128.f}));
-//    shapes.push_back(new Sphere(glm::vec3(5, -1, -15), 2,
-//                                {glm::vec3(.9f, .76f, .46f), glm::vec3(.9f, .76f, .46f), glm::vec3(.7f, .7f, .7f), 128.f}));
-//    shapes.push_back(new Sphere(glm::vec3(5, 0, -25), 3,
-//                                {glm::vec3(.65f, .77f, .97f), glm::vec3(.65f, .77f, .97f), glm::vec3(.7f, .7f, .7f), 128.f}));
-//    shapes.push_back(new Sphere(glm::vec3(-5.5, 0, -15), 3,
-//                                {glm::vec3(.9f, .9f, .9f), glm::vec3(.9f, .9f, .9f), glm::vec3(.7f, .7f, .7f), 128.f}));
+    shapes.push_back(new Sphere(glm::vec3(0, 0, -20), 4,
+                                {glm::vec3(1.f, .32f, .36f), glm::vec3(1.f, .32f, .36f), glm::vec3(.7f, .7f, .7f), 128.f}));
+    shapes.push_back(new Sphere(glm::vec3(5, -1, -15), 2,
+                                {glm::vec3(.9f, .76f, .46f), glm::vec3(.9f, .76f, .46f), glm::vec3(.7f, .7f, .7f), 128.f}));
+    shapes.push_back(new Sphere(glm::vec3(5, 0, -25), 3,
+                                {glm::vec3(.65f, .77f, .97f), glm::vec3(.65f, .77f, .97f), glm::vec3(.7f, .7f, .7f), 128.f}));
+    shapes.push_back(new Sphere(glm::vec3(-5.5, 0, -15), 3,
+                                {glm::vec3(.9f, .9f, .9f), glm::vec3(.9f, .9f, .9f), glm::vec3(.7f, .7f, .7f), 128.f}));
 
     // Triangle
 //    shapes.push_back(new Triangle(
@@ -209,19 +209,19 @@ inline void initScene() {
                                {glm::vec3(.8f, .8f, .8f), glm::vec3(.8f, .8f, .8f), glm::vec3(.7f, .7f, .7f), 0.f}));
 
     // Teapot
-    glm::vec3 teapotPosition(0, 0, -10);
-    std::vector<glm::vec3> vertices;
-    std::vector<glm::vec3> normals;
-    Material teapotMat {
-        glm::vec3(.5f, .5f, 0.f),
-        glm::vec3(.5f, .5f, 0.f),
-        glm::vec3(.7f, .7f, .7f),
-        100.f
-    };
-    loadOBJ("./teapot_smooth.obj", vertices, normals);
-    for (int i = 0; i < vertices.size(); i+=3) {
-        shapes.push_back(new Triangle(teapotPosition, &vertices[i], &normals[i], teapotMat));
-    }
+//    glm::vec3 teapotPosition(0, 0, -10);
+//    std::vector<glm::vec3> vertices;
+//    std::vector<glm::vec3> normals;
+//    Material teapotMat {
+//        glm::vec3(.5f, .5f, 0.f),
+//        glm::vec3(.5f, .5f, 0.f),
+//        glm::vec3(.7f, .7f, .7f),
+//        100.f
+//    };
+//    loadOBJ("./teapot_smooth.obj", vertices, normals);
+//    for (int i = 0; i < vertices.size(); i+=3) {
+//        shapes.push_back(new Triangle(teapotPosition, &vertices[i], &normals[i], teapotMat));
+//    }
 
     // Lights
     light = new Light(glm::vec3(10.f, 10.f, 0.f), glm::vec3(.2f, .2f, .2f), glm::vec3(1.f, 1.f, 1.f));
