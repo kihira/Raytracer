@@ -47,6 +47,7 @@ static const float vertices[16]{
 
 const float FOV = 120;
 glm::vec3 CAMERA(0, 0, 0);
+glm::mat4 camToWorld(1.f);
 
 Image *image;
 std::vector<Shape *> shapes;
@@ -148,7 +149,6 @@ glm::vec3 &getWorldDirection(glm::mat4 &world, glm::vec3 &dir, glm::vec3 &out) {
 static void raycast(Image *image, int xStart, int xCount) {
     float aspectRatio = (float) image->getWidth() / image->getHeight();
     float fovHalfTan = tanf(glm::radians(FOV) / 2.f);
-    glm::mat4 camToWorld(1.f);
     glm::vec2 normalised, remapped;
     glm::vec3 rayOrigin, rayDirection;
     Ray *ray = new Ray(getWorldOrigin(camToWorld, CAMERA, rayOrigin), CAMERA);
@@ -183,7 +183,7 @@ static void raycast(Image *image, int xStart, int xCount) {
 
 void renderScene(Image *image) {
     using namespace std::chrono;
-    std::cout << "Starting render..." << std::endl;
+    std::cout << "Starting render..." << std::endl << std::endl;
     milliseconds startTime = duration_cast<milliseconds>(system_clock::now().time_since_epoch());
 
 #ifdef MULTITHREAD
@@ -208,21 +208,25 @@ void renderScene(Image *image) {
                  image->getData());
     glErrorCheck();
 
-    std::cout << "Render Details" << std::endl << "================" << std::endl;
-    std::cout << "Time: " << (duration_cast<milliseconds>(system_clock::now().time_since_epoch()) - startTime).count()
-              << "ms" << std::endl;
+    std::cout << "Render Details" << std::endl
+              << "================" << std::endl
+              << "Time: " << (duration_cast<milliseconds>(system_clock::now().time_since_epoch()) - startTime).count()
+              << "ms" << std::endl
+              << "Camera: " << CAMERA.x << ", " << CAMERA.y << ", " << CAMERA.z << std::endl
+              << "Objects: " << shapes.size() << std::endl
+              << "================" << std::endl << std::endl;
 }
 
 inline void initScene() {
     // Create spheres
-    shapes.push_back(new Sphere(glm::vec3(0, 0, -20), 4,
-                                {glm::vec3(1.f, .32f, .36f), glm::vec3(1.f, .32f, .36f), glm::vec3(.7f, .7f, .7f), 128.f}));
-    shapes.push_back(new Sphere(glm::vec3(5, -1, -15), 2,
-                                {glm::vec3(.9f, .76f, .46f), glm::vec3(.9f, .76f, .46f), glm::vec3(.7f, .7f, .7f), 128.f}));
-    shapes.push_back(new Sphere(glm::vec3(5, 0, -25), 3,
-                                {glm::vec3(.65f, .77f, .97f), glm::vec3(.65f, .77f, .97f), glm::vec3(.7f, .7f, .7f), 128.f}));
-    shapes.push_back(new Sphere(glm::vec3(-5.5, 0, -15), 3,
-                                {glm::vec3(.9f, .9f, .9f), glm::vec3(.9f, .9f, .9f), glm::vec3(.7f, .7f, .7f), 128.f}));
+//    shapes.push_back(new Sphere(glm::vec3(0, 0, -20), 4,
+//                                {glm::vec3(1.f, .32f, .36f), glm::vec3(1.f, .32f, .36f), glm::vec3(.7f, .7f, .7f), 128.f}));
+//    shapes.push_back(new Sphere(glm::vec3(5, -1, -15), 2,
+//                                {glm::vec3(.9f, .76f, .46f), glm::vec3(.9f, .76f, .46f), glm::vec3(.7f, .7f, .7f), 128.f}));
+//    shapes.push_back(new Sphere(glm::vec3(5, 0, -25), 3,
+//                                {glm::vec3(.65f, .77f, .97f), glm::vec3(.65f, .77f, .97f), glm::vec3(.7f, .7f, .7f), 128.f}));
+//    shapes.push_back(new Sphere(glm::vec3(-5.5, 0, -15), 3,
+//                                {glm::vec3(.9f, .9f, .9f), glm::vec3(.9f, .9f, .9f), glm::vec3(.7f, .7f, .7f), 128.f}));
 
     // Triangle
 //    shapes.push_back(new Triangle(
@@ -235,23 +239,23 @@ inline void initScene() {
                                {glm::vec3(.8f, .8f, .8f), glm::vec3(.8f, .8f, .8f), glm::vec3(.7f, .7f, .7f), 0.f}));
 
     // Teapot
-//    glm::vec3 teapotPosition(0, 0, -10);
-//    std::vector<glm::vec3> vertices;
-//    std::vector<glm::vec3> normals;
-//    Material teapotMat {
-//        glm::vec3(.5f, .5f, 0.f),
-//        glm::vec3(.5f, .5f, 0.f),
-//        glm::vec3(.7f, .7f, .7f),
-//        100.f
-//    };
-//    loadOBJ("./teapot_smooth.obj", vertices, normals);
-//    for (int i = 0; i < vertices.size(); i+=3) {
-//        // Offset vertices position
-//        vertices[i] += teapotPosition;
-//        vertices[i+1] += teapotPosition;
-//        vertices[i+2] += teapotPosition;
-//        shapes.push_back(new Triangle(&vertices[i], &normals[i], teapotMat));
-//    }
+    glm::vec3 teapotPosition(0, 0, -10);
+    std::vector<glm::vec3> vertices;
+    std::vector<glm::vec3> normals;
+    Material teapotMat {
+        glm::vec3(.5f, .5f, 0.f),
+        glm::vec3(.5f, .5f, 0.f),
+        glm::vec3(.7f, .7f, .7f),
+        100.f
+    };
+    loadOBJ("./teapot_smooth.obj", vertices, normals);
+    for (int i = 0; i < vertices.size(); i+=3) {
+        // Offset vertices position
+        vertices[i] += teapotPosition;
+        vertices[i+1] += teapotPosition;
+        vertices[i+2] += teapotPosition;
+        shapes.push_back(new Triangle(&vertices[i], &normals[i], teapotMat));
+    }
 }
 
 void glfwKeyCallback(GLFWwindow *window, int key, int scancode, int action, int mods) {
