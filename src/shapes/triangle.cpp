@@ -1,13 +1,12 @@
 #include "triangle.h"
-#include "../mathelper.hpp"
 
 #define EPSILON 1e-6f
 // #define CULL_BACKFACE
 
 Triangle::Triangle(glm::vec3 position, glm::vec3 *vertices, glm::vec3 *normals, Material material) : Shape(position, material), vertices(vertices), normals(normals) {
-    getWorldOrigin(modelMatrix, vertices[0], vertices[0]);
-    getWorldOrigin(modelMatrix, vertices[1], vertices[1]);
-    getWorldOrigin(modelMatrix, vertices[2], vertices[2]);
+    vertices[0] = modelMatrix * glm::vec4(vertices[0], 1);
+    vertices[1] = modelMatrix * glm::vec4(vertices[1], 1);
+    vertices[2] = modelMatrix * glm::vec4(vertices[2], 1);
 }
 
 // TODO BUG This doesn't work in multithread as we're writing to u and v across multiple threads

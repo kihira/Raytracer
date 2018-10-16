@@ -1,3 +1,5 @@
+#define GLM_ENABLE_EXPERIMENTAL
+
 #include <iostream>
 #include <fstream>
 #include <vector>
@@ -6,17 +8,17 @@
 #include <ext.hpp>
 #include <thread>
 #include <objloader.h>
+#include <gtx/euler_angles.hpp>
 #include "shapes/sphere.h"
 #include "shapes/plane.h"
 #include "image.h"
 #include "shapes/triangle.h"
 #include "light.h"
-#include "mathelper.hpp"
 
 #define THREADS 4
-#define RENDER_ON_UPDATE false
-#define MULTITHREAD true
-#define LIGHTING true
+// #define RENDER_ON_UPDATE
+#define MULTITHREAD
+#define LIGHTING
 
 static const char *vertexShaderSource = R"(
 #version 330
@@ -48,12 +50,15 @@ static const float vertices[16]{
 
 struct Camera {
     glm::vec3 position;
-    glm::vec3 rotation;
-    glm::mat4 camToWorld; // This is effectively the view matrix
+    glm::mat4 viewMatrix;
+
+    void updateViewMatrix() {
+        // viewMatrix = glm::lookAt(position, glm::vec3(0, 0, -10), glm::vec3(0, 1, 0));
+        viewMatrix = glm::translate(glm::mat4(1.f), position);
+
+    }
 } camera = {
-        glm::vec3(0.f, 0.f, 0.f),
-        glm::vec3(0.f, 0.f, 0.f),
-        glm::mat4(1.f)
+        glm::vec3(0.f, 0.f, 0.f)
 };
 
 const float FOV = 120;
@@ -92,7 +97,7 @@ glm::vec3 calculateLighting(Ray *ray, Shape *shape, float distance) {
     glm::vec3 lightRay = glm::normalize(light->getPosition() - intersectionPoint);
 
     // Check if we are in shadow. If so, just return ambient colour;
-    ray *shadowRay = new Ray(intersectionPoint, lightRay);
+    Ray *shadowRay = new Ray(intersectionPoint, lightRay);
     Shape *closestShape = nullptr;
     if (shadowRay->cast(shapes, &closestShape, &distance, shape)) {
         delete shadowRay;
@@ -121,7 +126,7 @@ static void raycast(Image *image, int xStart, int xCount) {
     float fovHalfTan = tanf(glm::radians(FOV) / 2.f);
     glm::vec2 normalised, remapped;
     glm::vec3 rayOrigin, rayDirection;
-    Ray *ray = new Ray(getWorldOrigin(camera.camToWorld, glm::vec3(0.f), rayOrigin), glm::vec3(0.f));
+    Ray *ray = new Ray(camera.viewMatrix * glm::vec4(0.f, 0.f, 0.f, 1.f), glm::vec3(0.f));
 
     for (int x = xStart; x < xStart + xCount; ++x) {
         for (int y = 0; y < image->getHeight(); ++y) {
@@ -134,7 +139,7 @@ static void raycast(Image *image, int xStart, int xCount) {
             remapped.y = 1.f - 2.f * normalised.y;
 
             glm::vec3 cameraSpace(remapped.x * fovHalfTan, remapped.y * fovHalfTan, -1);
-            ray->setDirection(glm::normalize(getWorldDirection(camera.camToWorld, cameraSpace, rayDirection)));
+            ray->setDirection(glm::normalize(camera.viewMatrix * glm::vec4(cameraSpace, 0)));
 
             // Loop through the shapes and see if we hit
             Shape *shapeClosest = nullptr;
@@ -255,8 +260,7 @@ void glfwKeyCallback(GLFWwindow *window, int key, int scancode, int action, int 
         default:break;
     }
 
-    camera.camToWorld = glm::mat4(1.f);
-    camera.camToWorld = glm::translate(camera.camToWorld, camera.position);
+    camera.updateViewMatrix();
 }
 
 void glfwFramebufferSizeCallback(GLFWwindow *window, int width, int height) {
@@ -349,7 +353,7 @@ int main() {
         glClear(GL_COLOR_BUFFER_BIT);
 
         // Render
-#if RENDER_ON_UPDATE
+#ifdef RENDER_ON_UPDATE
         renderScene(image);
 #endif
 

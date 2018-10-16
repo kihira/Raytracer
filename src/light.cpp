@@ -1,7 +1,6 @@
 
 #include <ext.hpp>
 #include "light.h"
-#include "mathelper.hpp"
 
 Light::Light(const glm::vec3 &position, const glm::vec3 &ambientIntensity, const glm::vec3 &intensity)
         : position(position), ambientIntensity(ambientIntensity), intensity(intensity) {}
