@@ -1,8 +1,7 @@
 #include "Sphere.h"
 
 Sphere::Sphere(const glm::vec3 &position, float radius, Material material)
-        : Shape(material), radius(radius) {
-    this->position = position;
+        : Shape(position, material), radius(radius) {
 }
 
 bool Sphere::intersects(Ray *ray, float *distance) {

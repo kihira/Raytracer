@@ -10,6 +10,7 @@ private:
     glm::vec3 position;
     glm::vec3 ambientIntensity;
     glm::vec3 intensity;
+    glm::mat4 lightToWorld;
 public:
     Light(const glm::vec3 &position, const glm::vec3 &ambientIntensity, const glm::vec3 &intensity);
 

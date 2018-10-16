@@ -1,8 +1,7 @@
 #include "Plane.h"
 #include "../Ray.h"
 
-Plane::Plane(const glm::vec3 &position, const glm::vec3 &normal, Material material) : Shape(material) {
-    this->position = position;
+Plane::Plane(const glm::vec3 &position, const glm::vec3 &normal, Material material) : Shape(position, material) {
     this->normal = normal;
 }
 

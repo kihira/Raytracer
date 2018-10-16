@@ -14,7 +14,7 @@ struct Material {
 
 class Shape {
 public:
-    explicit Shape(Material material);
+    Shape(glm::vec3 position, Material material);
 
     virtual ~Shape() = default;
 
@@ -22,12 +22,12 @@ public:
 
     virtual glm::vec3 getNormal(glm::vec3 &intersectionPoint);
 
-    glm::vec3 getPosition() const;
-
     const Material &getMaterial() const;
 
 protected:
+    glm::mat4 modelMatrix;
     glm::vec3 position;
+    glm::vec3 rotation;
     glm::vec3 normal;
     Material material;
 };
