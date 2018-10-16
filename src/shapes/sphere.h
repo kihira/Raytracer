@@ -3,14 +3,14 @@
 
 
 #include <glm.hpp>
-#include "Shape.h"
-#include "../Ray.h"
+#include "shape.h"
+#include "../ray.h"
 
-class Sphere : public Shape {
+class sphere : public Shape {
 private:
     float radius;
 public:
-    Sphere(const glm::vec3 &position, float radius, Material material);
+    sphere(const glm::vec3 &position, float radius, Material material);
     /**
     * Calculates whether the ray intersects the sphere and where it hits on the sphere.
     * @param ray The ray to test

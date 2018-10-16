@@ -5,9 +5,11 @@
 
 #include <glm.hpp>
 
+/**
+ * A class that represents a point light
+ */
 class Light {
 private:
-    glm::mat4 modelMatrix;
     glm::vec3 position;
     glm::vec3 ambientIntensity;
     glm::vec3 intensity;

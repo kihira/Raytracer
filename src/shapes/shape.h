@@ -3,7 +3,7 @@
 
 
 #include <glm.hpp>
-#include "../Ray.h"
+#include "../ray.h"
 
 struct Material {
     glm::vec3 ambient;

@@ -1,5 +1,5 @@
 #include <ext.hpp>
-#include "Shape.h"
+#include "shape.h"
 
 Shape::Shape(glm::vec3 position, Material material) : position(position), material(material) {
     modelMatrix = glm::mat4(1.f);

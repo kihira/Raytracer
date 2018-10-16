@@ -1,4 +1,4 @@
-#include "Triangle.h"
+#include "triangle.h"
 #include "../mathelper.hpp"
 
 #define EPSILON 1e-6f

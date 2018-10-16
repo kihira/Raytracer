@@ -1,5 +1,5 @@
-#include "Plane.h"
-#include "../Ray.h"
+#include "plane.h"
+#include "../ray.h"
 
 Plane::Plane(const glm::vec3 &position, const glm::vec3 &normal, Material material) : Shape(position, material) {
     this->normal = normal;

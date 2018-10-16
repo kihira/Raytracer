@@ -3,8 +3,8 @@
 
 
 #include <glm.hpp>
-#include "Shape.h"
-#include "../Ray.h"
+#include "shape.h"
+#include "../ray.h"
 
 class Plane : public Shape {
 public:

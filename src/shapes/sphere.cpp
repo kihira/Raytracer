@@ -1,10 +1,10 @@
-#include "Sphere.h"
+#include "sphere.h"
 
-Sphere::Sphere(const glm::vec3 &position, float radius, Material material)
+sphere::sphere(const glm::vec3 &position, float radius, Material material)
         : Shape(position, material), radius(radius) {
 }
 
-bool Sphere::intersects(Ray *ray, float *distance) {
+bool sphere::intersects(Ray *ray, float *distance) {
     // Construct a right angle triangle between center of sphere, origin and ray
     glm::vec3 L = this->position - ray->origin;
     float tca = glm::dot(L, ray->direction);
@@ -27,6 +27,6 @@ bool Sphere::intersects(Ray *ray, float *distance) {
     return true;
 }
 
-glm::vec3 Sphere::getNormal(glm::vec3 &intersectionPoint) {
+glm::vec3 sphere::getNormal(glm::vec3 &intersectionPoint) {
     return glm::normalize(intersectionPoint - position);
 }

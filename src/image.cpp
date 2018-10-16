@@ -1,4 +1,4 @@
-#include "Image.h"
+#include "image.h"
 
 glm::vec3 &Image::getValue(int &x, int &y) {
     return data[width * y + x];

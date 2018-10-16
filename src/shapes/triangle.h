@@ -2,7 +2,7 @@
 #define INC_322COM_RAYCASTER_TRIANGLE_H
 
 
-#include "Shape.h"
+#include "shape.h"
 
 class Triangle : public Shape {
 private:

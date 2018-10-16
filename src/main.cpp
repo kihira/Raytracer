@@ -6,10 +6,10 @@
 #include <ext.hpp>
 #include <thread>
 #include <objloader.h>
-#include "shapes/Sphere.h"
-#include "shapes/Plane.h"
-#include "Image.h"
-#include "shapes/Triangle.h"
+#include "shapes/sphere.h"
+#include "shapes/plane.h"
+#include "image.h"
+#include "shapes/triangle.h"
 #include "light.h"
 #include "mathelper.hpp"
 
@@ -92,7 +92,7 @@ glm::vec3 calculateLighting(Ray *ray, Shape *shape, float distance) {
     glm::vec3 lightRay = glm::normalize(light->getPosition() - intersectionPoint);
 
     // Check if we are in shadow. If so, just return ambient colour;
-    Ray *shadowRay = new Ray(intersectionPoint, lightRay);
+    ray *shadowRay = new Ray(intersectionPoint, lightRay);
     Shape *closestShape = nullptr;
     if (shadowRay->cast(shapes, &closestShape, &distance, shape)) {
         delete shadowRay;
@@ -188,17 +188,17 @@ void renderScene(Image *image) {
 
 inline void initScene() {
     // Create spheres
-    shapes.push_back(new Sphere(glm::vec3(0, 0, -20), 4,
+    shapes.push_back(new sphere(glm::vec3(0, 0, -20), 4,
                                 {glm::vec3(1.f, .32f, .36f), glm::vec3(1.f, .32f, .36f), glm::vec3(.7f, .7f, .7f), 128.f}));
-    shapes.push_back(new Sphere(glm::vec3(5, -1, -15), 2,
+    shapes.push_back(new sphere(glm::vec3(5, -1, -15), 2,
                                 {glm::vec3(.9f, .76f, .46f), glm::vec3(.9f, .76f, .46f), glm::vec3(.7f, .7f, .7f), 128.f}));
-    shapes.push_back(new Sphere(glm::vec3(5, 0, -25), 3,
+    shapes.push_back(new sphere(glm::vec3(5, 0, -25), 3,
                                 {glm::vec3(.65f, .77f, .97f), glm::vec3(.65f, .77f, .97f), glm::vec3(.7f, .7f, .7f), 128.f}));
-    shapes.push_back(new Sphere(glm::vec3(-5.5, 0, -15), 3,
+    shapes.push_back(new sphere(glm::vec3(-5.5, 0, -15), 3,
                                 {glm::vec3(.9f, .9f, .9f), glm::vec3(.9f, .9f, .9f), glm::vec3(.7f, .7f, .7f), 128.f}));
 
-    // Triangle
-//    shapes.push_back(new Triangle(
+    // triangle
+//    shapes.push_back(new triangle(
 //            {0, 0, -2},
 //            new glm::vec3[3]{{0, 1, -2}, {-1.9, -1, -2}, {1.6, -0.5, -2}},
 //            new glm::vec3[3]{{0, 0.6, 1}, {-0.4, -0.4, 1}, {0.4, -0.4, 1}},
@@ -220,7 +220,7 @@ inline void initScene() {
 //    };
 //    loadOBJ("./teapot_smooth.obj", vertices, normals);
 //    for (int i = 0; i < vertices.size(); i+=3) {
-//        shapes.push_back(new Triangle(teapotPosition, &vertices[i], &normals[i], teapotMat));
+//        shapes.push_back(new triangle(teapotPosition, &vertices[i], &normals[i], teapotMat));
 //    }
 
     // Lights
