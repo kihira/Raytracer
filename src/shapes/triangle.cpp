@@ -4,9 +4,9 @@
 // #define CULL_BACKFACE
 
 Triangle::Triangle(glm::vec3 position, glm::vec3 *vertices, glm::vec3 *normals, Material material) : Shape(position, material), vertices(vertices), normals(normals) {
-    vertices[0] = modelMatrix * glm::vec4(vertices[0], 1);
-    vertices[1] = modelMatrix * glm::vec4(vertices[1], 1);
-    vertices[2] = modelMatrix * glm::vec4(vertices[2], 1);
+    Triangle::vertices[0] = modelMatrix * glm::vec4(vertices[0], 1);
+    Triangle::vertices[1] = modelMatrix * glm::vec4(vertices[1], 1);
+    Triangle::vertices[2] = modelMatrix * glm::vec4(vertices[2], 1);
 }
 
 bool Triangle::intersects(Ray *ray, float *distance, glm::vec2 &uv) {
