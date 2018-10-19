@@ -15,9 +15,9 @@
 #include "shapes/triangle.h"
 #include "light.h"
 
+// #define MULTITHREAD
 #define THREADS 4
 // #define RENDER_ON_UPDATE
-#define MULTITHREAD
 #define LIGHTING
 
 static const char *vertexShaderSource = R"(
@@ -90,22 +90,22 @@ void write(Image *image) {
     ofs.close();
 }
 
-glm::vec3 calculateLighting(Ray *ray, Shape *shape, float distance) {
+glm::vec3 calculateLighting(Ray *ray, Intersect &intersect) {
 #ifdef LIGHTING
-    Material mat = shape->getMaterial();
-    glm::vec3 intersectionPoint = ray->origin + ray->direction * distance;
-    glm::vec3 lightRay = glm::normalize(light->getPosition() - intersectionPoint);
+    Material mat = intersect.hitShape->getMaterial();
+    intersect.hitPoint = ray->origin + ray->direction * intersect.distance;
+    glm::vec3 lightRay = glm::normalize(light->getPosition() - intersect.hitPoint);
 
     // Check if we are in shadow. If so, just return ambient colour;
-    Ray *shadowRay = new Ray(intersectionPoint, lightRay);
-    Shape *closestShape = nullptr;
-    if (shadowRay->cast(shapes, &closestShape, &distance, shape)) {
+    Ray *shadowRay = new Ray(intersect.hitPoint, lightRay);
+    Intersect shadowIntersect = Intersect();
+    if (shadowRay->cast(shapes, shadowIntersect, intersect.hitShape)) {
         delete shadowRay;
         return mat.ambient * light->getAmbientIntensity();
     }
     delete shadowRay;
 
-    glm::vec3 normal = shape->getNormal(intersectionPoint);
+    glm::vec3 normal = intersect.hitShape->getNormal(intersect);
     glm::vec3 reflection = 2.f * glm::dot(lightRay, normal) * normal - lightRay;
     glm::vec3 viewDir = ray->direction * -1.f;
 
@@ -125,8 +125,8 @@ static void raycast(Image *image, int xStart, int xCount) {
     float aspectRatio = (float) image->getWidth() / image->getHeight();
     float fovHalfTan = tanf(glm::radians(FOV) / 2.f);
     glm::vec2 normalised, remapped;
-    glm::vec3 rayOrigin, rayDirection;
     Ray *ray = new Ray(camera.viewMatrix * glm::vec4(0.f, 0.f, 0.f, 1.f), glm::vec3(0.f));
+    // Intersect intersect = Intersect();
 
     for (int x = xStart; x < xStart + xCount; ++x) {
         for (int y = 0; y < image->getHeight(); ++y) {
@@ -141,13 +141,13 @@ static void raycast(Image *image, int xStart, int xCount) {
             glm::vec3 cameraSpace(remapped.x * fovHalfTan, remapped.y * fovHalfTan, -1);
             ray->setDirection(glm::normalize(camera.viewMatrix * glm::vec4(cameraSpace, 0)));
 
-            // Loop through the shapes and see if we hit
-            Shape *shapeClosest = nullptr;
-            float distance;
+            // Reset intersect
+            Intersect intersect = Intersect();
 
-            if (ray->cast(shapes, &shapeClosest, &distance)) {
+            // Loop through the shapes and see if we hit
+            if (ray->cast(shapes, intersect)) {
                 // Calculate lighting
-                image->setValue(x, y, calculateLighting(ray, shapeClosest, distance));
+                image->setValue(x, y, calculateLighting(ray, intersect));
             } else {
                 image->setValue(x, y, image->getBackground());
             }
@@ -193,17 +193,17 @@ void renderScene(Image *image) {
 
 inline void initScene() {
     // Create spheres
-    shapes.push_back(new sphere(glm::vec3(0, 0, -20), 4,
+    shapes.push_back(new Sphere(glm::vec3(0, 0, -20), 4,
                                 {glm::vec3(1.f, .32f, .36f), glm::vec3(1.f, .32f, .36f), glm::vec3(.7f, .7f, .7f), 128.f}));
-    shapes.push_back(new sphere(glm::vec3(5, -1, -15), 2,
+    shapes.push_back(new Sphere(glm::vec3(5, -1, -15), 2,
                                 {glm::vec3(.9f, .76f, .46f), glm::vec3(.9f, .76f, .46f), glm::vec3(.7f, .7f, .7f), 128.f}));
-    shapes.push_back(new sphere(glm::vec3(5, 0, -25), 3,
+    shapes.push_back(new Sphere(glm::vec3(5, 0, -25), 3,
                                 {glm::vec3(.65f, .77f, .97f), glm::vec3(.65f, .77f, .97f), glm::vec3(.7f, .7f, .7f), 128.f}));
-    shapes.push_back(new sphere(glm::vec3(-5.5, 0, -15), 3,
+    shapes.push_back(new Sphere(glm::vec3(-5.5, 0, -15), 3,
                                 {glm::vec3(.9f, .9f, .9f), glm::vec3(.9f, .9f, .9f), glm::vec3(.7f, .7f, .7f), 128.f}));
 
     // triangle
-//    shapes.push_back(new triangle(
+//    shapes.push_back(new Triangle(
 //            {0, 0, -2},
 //            new glm::vec3[3]{{0, 1, -2}, {-1.9, -1, -2}, {1.6, -0.5, -2}},
 //            new glm::vec3[3]{{0, 0.6, 1}, {-0.4, -0.4, 1}, {0.4, -0.4, 1}},
@@ -225,7 +225,7 @@ inline void initScene() {
 //    };
 //    loadOBJ("./teapot_smooth.obj", vertices, normals);
 //    for (int i = 0; i < vertices.size(); i+=3) {
-//        shapes.push_back(new triangle(teapotPosition, &vertices[i], &normals[i], teapotMat));
+//        shapes.push_back(new Triangle(teapotPosition, &vertices[i], &normals[i], teapotMat));
 //    }
 
     // Lights
@@ -344,6 +344,7 @@ int main() {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glErrorCheck();
 
+    camera.updateViewMatrix();
     initScene();
     renderScene(image);
 

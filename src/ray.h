@@ -6,6 +6,13 @@
 
 class Shape; // Forward declaration
 
+struct Intersect {
+    Shape *hitShape;
+    float distance;
+    glm::vec2 uv; // Used for triangle
+    glm::vec3 hitPoint;
+};
+
 class Ray {
 public:
     glm::vec3 direction;
@@ -14,8 +21,7 @@ public:
     void setDirection(const glm::vec3 &direction);
 
     Ray(const glm::vec3 &origin, const glm::vec3 &direction);
-    bool cast(std::vector<Shape *> &shapes, Shape **hitShape, float *hitDistance, Shape *ignore = nullptr);
+    bool cast(std::vector<Shape *> &shapes, Intersect &intersect, Shape *ignore = nullptr);
 };
-
 
 #endif //INC_322COM_RAYCASTER_RAY_H

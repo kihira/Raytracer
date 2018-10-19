@@ -6,20 +6,20 @@
 #include "shape.h"
 #include "../ray.h"
 
-class sphere : public Shape {
+class Sphere : public Shape {
 private:
     float radius;
 public:
-    sphere(const glm::vec3 &position, float radius, Material material);
+    Sphere(const glm::vec3 &position, float radius, Material material);
     /**
     * Calculates whether the ray intersects the sphere and where it hits on the sphere.
     * @param ray The ray to test
     * @param distance This value is set to the closest distance between the sphere and ray->origin
     * @return Whether the ray hit or not
     */
-    bool intersects(Ray *ray, float *distance) override;
+    bool intersects(Ray *ray, float *distance, glm::vec2 &uv) override;
 
-    glm::vec3 getNormal(glm::vec3 &intersectionPoint) override;
+    glm::vec3 getNormal(Intersect &intersect) override;
 };
 
 

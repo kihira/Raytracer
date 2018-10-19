@@ -10,7 +10,7 @@ const Material &Shape::getMaterial() const {
     return material;
 }
 
-glm::vec3 Shape::getNormal(glm::vec3 &intersectionPoint) {
+glm::vec3 Shape::getNormal(Intersect &intersect) {
     return normal;
 }
 

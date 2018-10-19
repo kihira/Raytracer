@@ -9,8 +9,7 @@ Triangle::Triangle(glm::vec3 position, glm::vec3 *vertices, glm::vec3 *normals, 
     vertices[2] = modelMatrix * glm::vec4(vertices[2], 1);
 }
 
-// TODO BUG This doesn't work in multithread as we're writing to u and v across multiple threads
-bool Triangle::intersects(Ray *ray, float *distance) {
+bool Triangle::intersects(Ray *ray, float *distance, glm::vec2 &uv) {
     glm::vec3 e1 = vertices[1] - vertices[0];
     glm::vec3 e2 = vertices[2] - vertices[0];
 
@@ -29,19 +28,19 @@ bool Triangle::intersects(Ray *ray, float *distance) {
     glm::vec3 oa = ray->origin - vertices[0];
 
     // Calculate u and test
-    float u = glm::dot(oa, de2) * invDet;
-    if (u < 0 || u > 1) return false;
+    uv.x = glm::dot(oa, de2) * invDet;
+    if (uv.x < 0 || uv.x > 1) return false;
 
     float v = glm::dot(ray->direction, glm::cross(oa, e1)) * invDet;
-    if (v < 0 || u + v > 1) return false;
+    if (v < 0 || uv.x + v > 1) return false;
 
     *distance = glm::dot(e2, glm::cross(oa, e1)) * invDet;
     return true;
 }
 
-glm::vec3 Triangle::getNormal(glm::vec3 &intersectionPoint) {
+glm::vec3 Triangle::getNormal(Intersect &intersect) {
     // u and v were calculated earlier, now we can just calculate w
-    w = 1.f - u - v;
+    float w = 1.f - intersect.uv.x - intersect.uv.y;
 
-    return glm::normalize(w * normals[0] + u * normals[1] + v * normals[2]);
+    return glm::normalize(w * normals[0] + intersect.uv.x * normals[1] + intersect.uv.y * normals[2]);
 }

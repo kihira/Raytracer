@@ -8,13 +8,12 @@ class Triangle : public Shape {
 private:
     glm::vec3 *vertices;
     glm::vec3 *normals;
-    float u, v, w;
 public:
-    bool intersects(Ray *ray, float *distance) override;
+    bool intersects(Ray *ray, float *distance, glm::vec2 &uv) override;
 
     Triangle(glm::vec3 position, glm::vec3 *vertices, glm::vec3 *normals, Material material);
 
-    glm::vec3 getNormal(glm::vec3 &intersectionPoint) override;
+    glm::vec3 getNormal(Intersect &intersect) override;
 };
 
 
