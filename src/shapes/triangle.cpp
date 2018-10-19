@@ -31,8 +31,8 @@ bool Triangle::intersects(Ray *ray, float *distance, glm::vec2 &uv) {
     uv.x = glm::dot(oa, de2) * invDet;
     if (uv.x < 0 || uv.x > 1) return false;
 
-    float v = glm::dot(ray->direction, glm::cross(oa, e1)) * invDet;
-    if (v < 0 || uv.x + v > 1) return false;
+    uv.y = glm::dot(ray->direction, glm::cross(oa, e1)) * invDet;
+    if (uv.y < 0 || uv.x + uv.y > 1) return false;
 
     *distance = glm::dot(e2, glm::cross(oa, e1)) * invDet;
     return true;

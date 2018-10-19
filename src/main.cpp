@@ -15,7 +15,7 @@
 #include "shapes/triangle.h"
 #include "light.h"
 
-// #define MULTITHREAD
+#define MULTITHREAD
 #define THREADS 4
 // #define RENDER_ON_UPDATE
 #define LIGHTING
@@ -214,19 +214,19 @@ inline void initScene() {
                                {glm::vec3(.8f, .8f, .8f), glm::vec3(.8f, .8f, .8f), glm::vec3(.7f, .7f, .7f), 0.f}));
 
     // Teapot
-//    glm::vec3 teapotPosition(0, 0, -10);
-//    std::vector<glm::vec3> vertices;
-//    std::vector<glm::vec3> normals;
-//    Material teapotMat {
-//        glm::vec3(.5f, .5f, 0.f),
-//        glm::vec3(.5f, .5f, 0.f),
-//        glm::vec3(.7f, .7f, .7f),
-//        100.f
-//    };
-//    loadOBJ("./teapot_smooth.obj", vertices, normals);
-//    for (int i = 0; i < vertices.size(); i+=3) {
-//        shapes.push_back(new Triangle(teapotPosition, &vertices[i], &normals[i], teapotMat));
-//    }
+    glm::vec3 teapotPosition(0, 5, -10);
+    std::vector<glm::vec3> vertices;
+    std::vector<glm::vec3> normals;
+    Material teapotMat {
+        glm::vec3(.5f, .5f, 0.f),
+        glm::vec3(.5f, .5f, 0.f),
+        glm::vec3(.7f, .7f, .7f),
+        100.f
+    };
+    loadOBJ("./teapot_smooth.obj", vertices, normals);
+    for (int i = 0; i < vertices.size(); i+=3) {
+        shapes.push_back(new Triangle(teapotPosition, &vertices[i], &normals[i], teapotMat));
+    }
 
     // Lights
     light = new Light(glm::vec3(10.f, 10.f, 0.f), glm::vec3(.2f, .2f, .2f), glm::vec3(1.f, 1.f, 1.f));
