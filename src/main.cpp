@@ -9,6 +9,9 @@
 #include <thread>
 #include <objloader.h>
 #include <gtx/euler_angles.hpp>
+#include <imgui.h>
+#include <imgui_impl_glfw.h>
+#include <imgui_impl_opengl3.h>
 #include "shapes/sphere.h"
 #include "shapes/plane.h"
 #include "image.h"
@@ -60,6 +63,13 @@ struct Camera {
 } camera = {
         glm::vec3(0.f, 0.f, 0.f)
 };
+
+struct RenderInfo {
+    long long renderTime;
+    int objects;
+    int primaryRays;
+    int secondaryRays;
+} renderInfo;
 
 const float FOV = 120;
 
@@ -183,9 +193,12 @@ void renderScene(Image *image) {
                  image->getData());
     glErrorCheck();
 
+    renderInfo.renderTime = (duration_cast<milliseconds>(system_clock::now().time_since_epoch()) - startTime).count();
+    renderInfo.objects = shapes.size();
+
     std::cout << "Render Details" << std::endl
               << "================" << std::endl
-              << "Time: " << (duration_cast<milliseconds>(system_clock::now().time_since_epoch()) - startTime).count()
+              << "Time: " << renderInfo.renderTime
               << "ms" << std::endl
               << "Objects: " << shapes.size() << std::endl
               << "================" << std::endl << std::endl;
@@ -303,6 +316,15 @@ int main() {
     glfwSetFramebufferSizeCallback(window, glfwFramebufferSizeCallback);
     glfwSetKeyCallback(window, glfwKeyCallback);
 
+    // Setup imgui
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImGuiIO& io = ImGui::GetIO(); (void)io;
+
+    ImGui_ImplGlfw_InitForOpenGL(window, true);
+    ImGui_ImplOpenGL3_Init("#version 330");
+    ImGui::StyleColorsDark();
+
     // Create image/texture raycaster will write to
     int width, height;
     glfwGetFramebufferSize(window, &width, &height);
@@ -353,6 +375,28 @@ int main() {
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
 
+        // Start imgui frame
+        ImGui_ImplOpenGL3_NewFrame();
+        ImGui_ImplGlfw_NewFrame();
+        ImGui::NewFrame();
+
+        // Controls
+        if (ImGui::Begin("Camera")) {
+            ImGui::DragFloat3("Position", &camera.position[0], 1.f);
+            if (ImGui::Button("Render")) {
+                renderScene(image);
+            }
+            ImGui::End();
+        }
+
+        if (ImGui::Begin("Render Statistics")) {
+            ImGui::LabelText("Time", "%lli ms", renderInfo.renderTime);
+            ImGui::LabelText("Objects", "%i", renderInfo.objects);
+            //ImGui::LabelText("Primary rays: ");
+            //ImGui::LabelText("Secondary rays: ");
+            ImGui::End();
+        }
+
         // Render
 #ifdef RENDER_ON_UPDATE
         renderScene(image);
@@ -362,10 +406,19 @@ int main() {
         glDrawArrays(GL_TRIANGLES, 0, 6);
         glErrorCheck();
 
+        // Render imgui
+        ImGui::Render();
+        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
         glfwSwapBuffers(window);
         //glfwPollEvents();
         glfwWaitEvents(); // Wait for new input before rendering
     }
+
+    // Shutdown imgui
+    ImGui_ImplOpenGL3_Shutdown();
+    ImGui_ImplGlfw_Shutdown();
+    ImGui::DestroyContext();
 
     // Cleanup resources
     delete image;

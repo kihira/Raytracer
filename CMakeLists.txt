@@ -24,3 +24,8 @@ include_directories(${PROJECT_NAME} glad/include)
 add_library(objloader STATIC objloader/objloader.cpp)
 include_directories(${PROJECT_NAME} objloader)
 target_link_libraries(${PROJECT_NAME} objloader)
+
+# imgui
+add_library(imgui STATIC imgui/imgui.cpp imgui/imgui_draw.cpp imgui/imgui_impl_glfw.cpp imgui/imgui_impl_opengl3.cpp imgui/imgui_widgets.cpp)
+include_directories(${PROJECT_NAME} imgui)
+target_link_libraries(${PROJECT_NAME} imgui)
