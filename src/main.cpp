@@ -17,11 +17,14 @@
 #include "image.h"
 #include "shapes/triangle.h"
 #include "light.h"
+#include "boxLight.h"
 
-#define MULTITHREAD
+// #define MULTITHREAD
 #define THREADS 4
 // #define RENDER_ON_UPDATE
 #define LIGHTING
+#define SOFT_SHADOW_SAMPLES 64
+#define SSS_SQRT sqrt(SOFT_SHADOW_SAMPLES)
 
 static const char *vertexShaderSource = R"(
 #version 330
@@ -60,22 +63,21 @@ struct Camera {
         viewMatrix = glm::translate(glm::mat4(1.f), position);
 
     }
-} camera = {
-        glm::vec3(0.f, 0.f, 0.f)
-};
+} camera;
 
 struct RenderInfo {
     long long renderTime;
-    int objects;
+    unsigned long objects;
     int primaryRays;
     int secondaryRays;
 } renderInfo;
 
-const float FOV = 120;
+const float FOV = 120.f;
 
-Image *image;
-Light *light;
+std::unique_ptr<Image> image;
+std::unique_ptr<BoxLight> light;
 std::vector<Shape *> shapes;
+std::unique_ptr<Ray> shadowRay;
 
 void glErrorCheck() {
     GLuint err = glGetError();
@@ -104,34 +106,45 @@ glm::vec3 calculateLighting(Ray *ray, Intersect &intersect) {
 #ifdef LIGHTING
     Material mat = intersect.hitShape->getMaterial();
     intersect.hitPoint = ray->origin + ray->direction * intersect.distance;
-    glm::vec3 lightRay = glm::normalize(light->getPosition() - intersect.hitPoint);
+    shadowRay->setOrigin(intersect.hitPoint);
 
-    // Check if we are in shadow. If so, just return ambient colour;
-    Ray *shadowRay = new Ray(intersect.hitPoint, lightRay);
-    Intersect shadowIntersect = Intersect();
-    if (shadowRay->cast(shapes, shadowIntersect, intersect.hitShape)) {
-        delete shadowRay;
-        return mat.ambient * light->getAmbientIntensity();
+    float xSpacing = light->getSize().x / SSS_SQRT;
+    float zSpacing = light->getSize().z / SSS_SQRT;
+    float xStart = light->getPosition().x - light->getSize().x / 2.f;
+    float zStart = light->getPosition().z - light->getSize().z / 2.f;
+    glm::vec3 colour(0.f);
+
+    // Shoot out multiple rays for soft shadows
+    for (int x = 0; x < SSS_SQRT; ++x) {
+        for (int z = 0; z < SSS_SQRT; ++z) {
+            glm::vec3 lightRay = glm::normalize(glm::vec3(xStart + xSpacing * x, light->getPosition().y, zStart + zSpacing * z) - intersect.hitPoint);
+
+            shadowRay->setDirection(lightRay);
+
+            Intersect shadowIntersect = Intersect();
+            if (shadowRay->cast(shapes, shadowIntersect, intersect.hitShape)) {
+                colour += mat.ambient * light->getAmbientIntensity();
+                continue;
+            }
+
+            glm::vec3 normal = intersect.hitShape->getNormal(intersect);
+            glm::vec3 reflection = 2.f * glm::dot(lightRay, normal) * normal - lightRay;
+            glm::vec3 viewDir = ray->direction * -1.f;
+
+            colour += mat.ambient * light->getAmbientIntensity(); // Ambient
+            colour += mat.diffuse * (light->getIntensity() * fmax(0.f, glm::dot(lightRay, normal))); // Diffuse
+            colour += mat.specular * light->getIntensity() *
+                      pow(fmax(0.f, glm::dot(reflection, viewDir)), mat.shininess); // Specular
+        }
     }
-    delete shadowRay;
 
-    glm::vec3 normal = intersect.hitShape->getNormal(intersect);
-    glm::vec3 reflection = 2.f * glm::dot(lightRay, normal) * normal - lightRay;
-    glm::vec3 viewDir = ray->direction * -1.f;
-
-    glm::vec3 colour(0.f, 0.f, 0.f);
-    colour += mat.ambient * light->getAmbientIntensity(); // Ambient
-    colour += mat.diffuse * (light->getIntensity() * fmax(0.f, glm::dot(lightRay, normal))); // Diffuse
-    colour += mat.specular * light->getIntensity() *
-              pow(fmax(0.f, glm::dot(reflection, viewDir)), mat.shininess); // Specular
-
-    return colour;
+    return glm::vec3(colour.r / SOFT_SHADOW_SAMPLES, colour.g / SOFT_SHADOW_SAMPLES, colour.b / SOFT_SHADOW_SAMPLES);
 #else
     return shape->getMaterial().diffuse;
 #endif
 }
 
-static void raycast(Image *image, int xStart, int xCount) {
+static void raycast(int xStart, int xCount) {
     float aspectRatio = (float) image->getWidth() / image->getHeight();
     float fovHalfTan = tanf(glm::radians(FOV) / 2.f);
     glm::vec2 normalised, remapped;
@@ -166,7 +179,7 @@ static void raycast(Image *image, int xStart, int xCount) {
     delete ray;
 }
 
-void renderScene(Image *image) {
+void renderScene() {
     using namespace std::chrono;
     std::cout << "Starting render..." << std::endl << std::endl;
     milliseconds startTime = duration_cast<milliseconds>(system_clock::now().time_since_epoch());
@@ -176,16 +189,16 @@ void renderScene(Image *image) {
     int xPortions = image->getWidth() / 4;
 
     // Need to run these in a lambda to capture the functions and variables
-    threads[0] = std::thread([image, xPortions](){ return raycast(image, 0, xPortions);});
-    threads[1] = std::thread([image, xPortions](){ return raycast(image, xPortions, xPortions);});
-    threads[2] = std::thread([image, xPortions](){ return raycast(image, xPortions * 2, xPortions);});
-    threads[3] = std::thread([image, xPortions](){ return raycast(image, xPortions * 3, xPortions);});
+    threads[0] = std::thread([xPortions](){ return raycast(0, xPortions);});
+    threads[1] = std::thread([xPortions](){ return raycast(xPortions, xPortions);});
+    threads[2] = std::thread([xPortions](){ return raycast(xPortions * 2, xPortions);});
+    threads[3] = std::thread([xPortions](){ return raycast(xPortions * 3, xPortions);});
 
     for (auto &thread : threads) {
         thread.join();
     }
 #else
-    raycast(image, 0, image->getWidth());
+    raycast(0, image->getWidth());
 #endif
 
     // Write image to texture (Don't need to rebind, should be bound)
@@ -223,26 +236,26 @@ inline void initScene() {
 //            {{0.5, 0.5, 0}, {0.5, 0.5, 0}, {0.7, 0.7, 0.7}, 100}));
 
     // Floor
-    shapes.push_back(new Plane(glm::vec3(0, -5, 0), glm::vec3(0, -1, 0),
+    shapes.push_back(new Plane(glm::vec3(0.f, -3.5f, 0.f), glm::vec3(0, -1, 0),
                                {glm::vec3(.8f, .8f, .8f), glm::vec3(.8f, .8f, .8f), glm::vec3(.7f, .7f, .7f), 0.f}));
 
     // Teapot
-    glm::vec3 teapotPosition(0, 5, -10);
-    std::vector<glm::vec3> vertices;
-    std::vector<glm::vec3> normals;
-    Material teapotMat {
-        glm::vec3(.5f, .5f, 0.f),
-        glm::vec3(.5f, .5f, 0.f),
-        glm::vec3(.7f, .7f, .7f),
-        100.f
-    };
-    loadOBJ("./teapot_smooth.obj", vertices, normals);
-    for (int i = 0; i < vertices.size(); i+=3) {
-        shapes.push_back(new Triangle(teapotPosition, &vertices[i], &normals[i], teapotMat));
-    }
+//    glm::vec3 teapotPosition(0, 5, -10);
+//    std::vector<glm::vec3> vertices;
+//    std::vector<glm::vec3> normals;
+//    Material teapotMat {
+//        glm::vec3(.5f, .5f, 0.f),
+//        glm::vec3(.5f, .5f, 0.f),
+//        glm::vec3(.7f, .7f, .7f),
+//        100.f
+//    };
+//    loadOBJ("./teapot_smooth.obj", vertices, normals);
+//    for (int i = 0; i < vertices.size(); i+=3) {
+//        shapes.push_back(new Triangle(teapotPosition, &vertices[i], &normals[i], teapotMat));
+//    }
 
     // Lights
-    light = new Light(glm::vec3(10.f, 10.f, 0.f), glm::vec3(.2f, .2f, .2f), glm::vec3(1.f, 1.f, 1.f));
+    light = std::unique_ptr<BoxLight>(new BoxLight(glm::vec3(-4.5f, 20.f, -4.5f), glm::vec3(9.f, .1f, 9.f), glm::vec3(.2f, .2f, .2f), glm::vec3(1.f, 1.f, 1.f)));
 }
 
 void glfwKeyCallback(GLFWwindow *window, int key, int scancode, int action, int mods) {
@@ -268,7 +281,7 @@ void glfwKeyCallback(GLFWwindow *window, int key, int scancode, int action, int 
             camera.position.y += 1.f;
             break;
         case GLFW_KEY_ENTER:
-            renderScene(image);
+            renderScene();
             break;
         default:break;
     }
@@ -280,7 +293,7 @@ void glfwFramebufferSizeCallback(GLFWwindow *window, int width, int height) {
     glViewport(0, 0, width, height);
     image->resize(width, height);
 
-    renderScene(image);
+    renderScene();
 }
 
 int main() {
@@ -321,14 +334,14 @@ int main() {
     ImGui::CreateContext();
     ImGuiIO& io = ImGui::GetIO(); (void)io;
 
-    ImGui_ImplGlfw_InitForOpenGL(window, true);
+    ImGui_ImplGlfw_InitForOpenGL(window, false);
     ImGui_ImplOpenGL3_Init("#version 330");
     ImGui::StyleColorsDark();
 
     // Create image/texture raycaster will write to
     int width, height;
     glfwGetFramebufferSize(window, &width, &height);
-    image = new Image(width, height, glm::vec3(1.f, 1.f, 1.f));
+    image = std::unique_ptr<Image>(new Image(width, height, glm::vec3(1.f, 1.f, 1.f)));
 
     // Generate basic shader program
     vertexShader = glCreateShader(GL_VERTEX_SHADER);
@@ -366,9 +379,12 @@ int main() {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glErrorCheck();
 
+    // Pre allocate shadow ray
+    shadowRay = std::unique_ptr<Ray>(new Ray(glm::vec3(0.f), glm::vec3(0.f)));
+
     camera.updateViewMatrix();
     initScene();
-    renderScene(image);
+    renderScene();
 
     // Update loop
     while (!glfwWindowShouldClose(window)) {
@@ -384,18 +400,18 @@ int main() {
         if (ImGui::Begin("Camera")) {
             ImGui::DragFloat3("Position", &camera.position[0], 1.f);
             if (ImGui::Button("Render")) {
-                renderScene(image);
+                renderScene();
             }
-            ImGui::End();
         }
+        ImGui::End();
 
         if (ImGui::Begin("Render Statistics")) {
             ImGui::LabelText("Time", "%lli ms", renderInfo.renderTime);
-            ImGui::LabelText("Objects", "%i", renderInfo.objects);
+            ImGui::LabelText("Objects", "%lu", renderInfo.objects);
             //ImGui::LabelText("Primary rays: ");
             //ImGui::LabelText("Secondary rays: ");
-            ImGui::End();
         }
+        ImGui::End();
 
         // Render
 #ifdef RENDER_ON_UPDATE
@@ -421,7 +437,6 @@ int main() {
     ImGui::DestroyContext();
 
     // Cleanup resources
-    delete image;
     for (auto shape : shapes) {
         delete shape;
     }
