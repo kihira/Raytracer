@@ -19,12 +19,10 @@
 #include "light.h"
 #include "boxLight.h"
 
-// #define MULTITHREAD
 #define THREADS 4
-// #define RENDER_ON_UPDATE
 #define LIGHTING
 #define SOFT_SHADOW_SAMPLES 64
-#define SSS_SQRT sqrt(SOFT_SHADOW_SAMPLES)
+#define SSS_SQRT sqrtf(SOFT_SHADOW_SAMPLES)
 
 static const char *vertexShaderSource = R"(
 #version 330
@@ -77,7 +75,8 @@ const float FOV = 120.f;
 std::unique_ptr<Image> image;
 std::unique_ptr<BoxLight> light;
 std::vector<Shape *> shapes;
-std::unique_ptr<Ray> shadowRay;
+std::vector<Ray *> rays;
+std::thread threads[THREADS];
 
 void glErrorCheck() {
     GLuint err = glGetError();
@@ -106,30 +105,34 @@ glm::vec3 calculateLighting(Ray *ray, Intersect &intersect) {
 #ifdef LIGHTING
     Material mat = intersect.hitShape->getMaterial();
     intersect.hitPoint = ray->origin + ray->direction * intersect.distance;
-    shadowRay->setOrigin(intersect.hitPoint);
 
+    glm::vec3 rayDirection = ray->direction;
     float xSpacing = light->getSize().x / SSS_SQRT;
     float zSpacing = light->getSize().z / SSS_SQRT;
     float xStart = light->getPosition().x - light->getSize().x / 2.f;
     float zStart = light->getPosition().z - light->getSize().z / 2.f;
     glm::vec3 colour(0.f);
 
+    // Reuse ray for shadows
+    // TODO seperate ray for shadow? might be tricky with multithreading
+    ray->setOrigin(intersect.hitPoint);
+
     // Shoot out multiple rays for soft shadows
     for (int x = 0; x < SSS_SQRT; ++x) {
         for (int z = 0; z < SSS_SQRT; ++z) {
             glm::vec3 lightRay = glm::normalize(glm::vec3(xStart + xSpacing * x, light->getPosition().y, zStart + zSpacing * z) - intersect.hitPoint);
 
-            shadowRay->setDirection(lightRay);
+            ray->setDirection(lightRay);
 
             Intersect shadowIntersect = Intersect();
-            if (shadowRay->cast(shapes, shadowIntersect, intersect.hitShape)) {
+            if (ray->cast(shapes, shadowIntersect, intersect.hitShape)) {
                 colour += mat.ambient * light->getAmbientIntensity();
                 continue;
             }
 
             glm::vec3 normal = intersect.hitShape->getNormal(intersect);
             glm::vec3 reflection = 2.f * glm::dot(lightRay, normal) * normal - lightRay;
-            glm::vec3 viewDir = ray->direction * -1.f;
+            glm::vec3 viewDir = rayDirection * -1.f;
 
             colour += mat.ambient * light->getAmbientIntensity(); // Ambient
             colour += mat.diffuse * (light->getIntensity() * fmax(0.f, glm::dot(lightRay, normal))); // Diffuse
@@ -144,25 +147,26 @@ glm::vec3 calculateLighting(Ray *ray, Intersect &intersect) {
 #endif
 }
 
-static void raycast(int xStart, int xCount) {
+static void raycast(int xStart, int xCount, Ray *ray) {
     float aspectRatio = (float) image->getWidth() / image->getHeight();
     float fovHalfTan = tanf(glm::radians(FOV) / 2.f);
     glm::vec2 normalised, remapped;
-    Ray *ray = new Ray(camera.viewMatrix * glm::vec4(0.f, 0.f, 0.f, 1.f), glm::vec3(0.f));
-    // Intersect intersect = Intersect();
+    glm::vec3 cameraOrigin = camera.viewMatrix * glm::vec4(0.f, 0.f, 0.f, 1.f);
+    ray->setOrigin(cameraOrigin);
 
     for (int x = xStart; x < xStart + xCount; ++x) {
         for (int y = 0; y < image->getHeight(); ++y) {
             // Remap to 0:1
-            normalised.x = (x + 0.5f) / image->getWidth();
-            normalised.y = (y + 0.5f) / image->getHeight();
+            normalised.x = (x + .5f) / image->getWidth();
+            normalised.y = (y + .5f) / image->getHeight();
 
             // Remap to -1:1
             remapped.x = (2.f * normalised.x - 1.f) * aspectRatio;
             remapped.y = 1.f - 2.f * normalised.y;
 
-            glm::vec3 cameraSpace(remapped.x * fovHalfTan, remapped.y * fovHalfTan, -1);
-            ray->setDirection(glm::normalize(camera.viewMatrix * glm::vec4(cameraSpace, 0)));
+            glm::vec3 cameraSpace(remapped.x * fovHalfTan, remapped.y * fovHalfTan, -1.f);
+            ray->setOrigin(cameraOrigin);
+            ray->setDirection(glm::normalize(camera.viewMatrix * glm::vec4(cameraSpace, 0.f)));
 
             // Reset intersect
             Intersect intersect = Intersect();
@@ -176,7 +180,6 @@ static void raycast(int xStart, int xCount) {
             }
         }
     }
-    delete ray;
 }
 
 void renderScene() {
@@ -184,21 +187,18 @@ void renderScene() {
     std::cout << "Starting render..." << std::endl << std::endl;
     milliseconds startTime = duration_cast<milliseconds>(system_clock::now().time_since_epoch());
 
-#ifdef MULTITHREAD
-    std::thread threads[THREADS];
+#ifdef THREADS
     int xPortions = image->getWidth() / 4;
 
-    // Need to run these in a lambda to capture the functions and variables
-    threads[0] = std::thread([xPortions](){ return raycast(0, xPortions);});
-    threads[1] = std::thread([xPortions](){ return raycast(xPortions, xPortions);});
-    threads[2] = std::thread([xPortions](){ return raycast(xPortions * 2, xPortions);});
-    threads[3] = std::thread([xPortions](){ return raycast(xPortions * 3, xPortions);});
+    for (int i = 0; i < THREADS; ++i) {
+        threads[i] = std::thread([xPortions, i](){ return raycast(xPortions * i, xPortions, rays[i]);});
+    }
 
     for (auto &thread : threads) {
         thread.join();
     }
 #else
-    raycast(0, image->getWidth());
+    raycast(0, image->getWidth(), rays[0]);
 #endif
 
     // Write image to texture (Don't need to rebind, should be bound)
@@ -236,7 +236,7 @@ inline void initScene() {
 //            {{0.5, 0.5, 0}, {0.5, 0.5, 0}, {0.7, 0.7, 0.7}, 100}));
 
     // Floor
-    shapes.push_back(new Plane(glm::vec3(0.f, -3.5f, 0.f), glm::vec3(0, -1, 0),
+    shapes.push_back(new Plane(glm::vec3(0.f, -4.f, 0.f), glm::vec3(0.f, -1.f, 0.f),
                                {glm::vec3(.8f, .8f, .8f), glm::vec3(.8f, .8f, .8f), glm::vec3(.7f, .7f, .7f), 0.f}));
 
     // Teapot
@@ -379,8 +379,11 @@ int main() {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glErrorCheck();
 
-    // Pre allocate shadow ray
-    shadowRay = std::unique_ptr<Ray>(new Ray(glm::vec3(0.f), glm::vec3(0.f)));
+    // Pre allocate rays
+    rays.reserve(THREADS);
+    for (int i = 0; i < THREADS; ++i) {
+        rays.push_back(new Ray(glm::vec3(0.f), glm::vec3(0.f)));
+    }
 
     camera.updateViewMatrix();
     initScene();
