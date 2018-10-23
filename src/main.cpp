@@ -23,6 +23,7 @@
 #define LIGHTING
 #define SOFT_SHADOW_SAMPLES 64
 #define SSS_SQRT sqrtf(SOFT_SHADOW_SAMPLES)
+#define SHADOW_JITTER
 
 static const char *vertexShaderSource = R"(
 #version 330
@@ -101,6 +102,10 @@ void write(Image *image) {
     ofs.close();
 }
 
+inline float getRandom() {
+    return (rand() % 100) / 100.f;
+}
+
 glm::vec3 calculateLighting(Ray *ray, Intersect &intersect) {
 #ifdef LIGHTING
     Material mat = intersect.hitShape->getMaterial();
@@ -120,7 +125,11 @@ glm::vec3 calculateLighting(Ray *ray, Intersect &intersect) {
     // Shoot out multiple rays for soft shadows
     for (int x = 0; x < SSS_SQRT; ++x) {
         for (int z = 0; z < SSS_SQRT; ++z) {
+#ifdef SHADOW_JITTER
+            glm::vec3 lightRay = glm::normalize(glm::vec3(xStart + xSpacing * x + (xSpacing * getRandom()), light->getPosition().y, zStart + zSpacing * z + (xSpacing * getRandom())) - intersect.hitPoint);
+#else
             glm::vec3 lightRay = glm::normalize(glm::vec3(xStart + xSpacing * x, light->getPosition().y, zStart + zSpacing * z) - intersect.hitPoint);
+#endif
 
             ray->setDirection(lightRay);
 
