@@ -54,8 +54,9 @@ static const float vertices[16]{
 };
 
 struct Camera {
-    glm::vec3 position;
-    glm::mat4 viewMatrix;
+    glm::vec3 position = glm::vec3(0.f);
+    glm::mat4 viewMatrix = glm::mat4(1.f);
+    float fov = 90.f;
 
     void updateViewMatrix() {
         // viewMatrix = glm::lookAt(position, glm::vec3(0, 0, -10), glm::vec3(0, 1, 0));
@@ -70,8 +71,6 @@ struct RenderInfo {
     int primaryRays;
     int secondaryRays;
 } renderInfo;
-
-const float FOV = 120.f;
 
 std::unique_ptr<Image> image;
 std::unique_ptr<BoxLight> light;
@@ -158,7 +157,7 @@ glm::vec3 calculateLighting(Ray *ray, Intersect &intersect) {
 
 static void raycast(int xStart, int xCount, Ray *ray) {
     float aspectRatio = (float) image->getWidth() / image->getHeight();
-    float fovHalfTan = tanf(glm::radians(FOV) / 2.f);
+    float fovHalfTan = tanf(glm::radians(camera.fov) / 2.f);
     glm::vec2 normalised, remapped;
     glm::vec3 cameraOrigin = camera.viewMatrix * glm::vec4(0.f, 0.f, 0.f, 1.f);
     ray->setOrigin(cameraOrigin);
@@ -411,6 +410,7 @@ int main() {
         // Controls
         if (ImGui::Begin("Camera")) {
             ImGui::DragFloat3("Position", &camera.position[0], 1.f);
+            ImGui::SliderFloat("FOV", &camera.fov, 45.f, 180.f);
             if (ImGui::Button("Render")) {
                 renderScene();
             }
