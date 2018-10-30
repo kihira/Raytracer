@@ -270,13 +270,10 @@ void renderScene() {
  */
 inline void initScene() {
     // Create spheres
-    shapes.push_back(new Sphere(glm::vec3(0, 0, -20), 4,
-                                {glm::vec3(1.f, .32f, .36f), glm::vec3(1.f, .32f, .36f), glm::vec3(.2f), 20.f}));
-    shapes.push_back(new Sphere(glm::vec3(5, -1, -15), 2,
-                                {glm::vec3(.9f, .76f, .46f), glm::vec3(.9f, .76f, .46f), glm::vec3(.9f), 20.f}));
-    shapes.push_back(new Sphere(glm::vec3(5, 0, -25), 3,
-                                {glm::vec3(.65f, .77f, .97f), glm::vec3(.65f, .77f, .97f), glm::vec3(.5f), 20.f}));
-    shapes.push_back(new Sphere(glm::vec3(-5.5, 0, -15), 3, {glm::vec3(.9f), glm::vec3(.9f), glm::vec3(.5f), 20.f}));
+    shapes.push_back(new Sphere(glm::vec3(0, 0, -20), 4, {glm::vec3(1.f, .32f, .36f), glm::vec3(.2f), 20.f}));
+    shapes.push_back(new Sphere(glm::vec3(5, -1, -15), 2, {glm::vec3(.9f, .76f, .46f), glm::vec3(.9f), 20.f}));
+    shapes.push_back(new Sphere(glm::vec3(5, 0, -25), 3, {glm::vec3(.65f, .77f, .97f), glm::vec3(.5f), 20.f}));
+    shapes.push_back(new Sphere(glm::vec3(-5.5, 0, -15), 3, {glm::vec3(.9f), glm::vec3(.5f), 20.f}));
 
     // triangle
 //    shapes.push_back(new Triangle(
@@ -286,8 +283,7 @@ inline void initScene() {
 //            {{0.5, 0.5, 0}, {0.5, 0.5, 0}, {0.7, 0.7, 0.7}, 100}));
 
     // Floor
-    shapes.push_back(new Plane(glm::vec3(0.f, -4.f, 0.f), glm::vec3(0.f, -1.f, 0.f),
-                               {glm::vec3(.8f, .8f, .8f), glm::vec3(.8f, .8f, .8f), glm::vec3(.7f, .7f, .7f), 0.f}));
+    shapes.push_back(new Plane(glm::vec3(0.f, -4.f, 0.f), glm::vec3(0.f, -1.f, 0.f), {glm::vec3(.8f), glm::vec3(.7f), 0.f}));
 
     // Teapot
 //    glm::vec3 teapotPosition(0, 5, -10);
@@ -305,7 +301,7 @@ inline void initScene() {
 //    }
 
     // Lights
-    light = std::unique_ptr<BoxLight>(new BoxLight(glm::vec3(-4.5f, 20.f, -4.5f), glm::vec3(9.f, .1f, 9.f), glm::vec3(.2f, .2f, .2f), glm::vec3(1.f, 1.f, 1.f)));
+    light = std::unique_ptr<BoxLight>(new BoxLight(glm::vec3(-4.5f, 20.f, -4.5f), glm::vec3(9.f, .1f, 9.f), glm::vec3(.2f), glm::vec3(1.f)));
 }
 
 /**

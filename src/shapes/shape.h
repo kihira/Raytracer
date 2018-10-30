@@ -10,6 +10,9 @@ struct Material {
     glm::vec3 diffuse;
     glm::vec3 specular;
     float shininess;
+
+    Material(glm::vec3 colour, glm::vec3 specular, float shininess);
+    Material(glm::vec3 &ambient, glm::vec3 &diffuse, glm::vec3 &specular, float shininess);
 };
 
 class Shape {
