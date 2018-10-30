@@ -77,6 +77,7 @@ struct RenderSettings {
     float shadowJitter = 1.f;
     bool shadows = true;
     bool reflections = true;
+    int maxReflectionDepth = 4;
 } renderSettings;
 
 std::unique_ptr<Image> image;
@@ -163,16 +164,20 @@ glm::vec3 calculateLighting(Ray *ray, Intersect &intersect) {
     }
 
     // Calculate reflections
-    if (mat.shininess > 0.f && renderSettings.reflections) {
+    if (mat.shininess > 0.f && renderSettings.reflections && ray->depth < renderSettings.maxReflectionDepth) {
         glm::vec3 reflectionDir = ray->direction - 2.f * glm::dot(ray->direction, normal) * normal;
-        Ray *reflectionRay = new Ray(intersect.hitPoint, reflectionDir);
+        // Reuse main ray
+        ray->setOrigin(intersect.hitPoint);
+        ray->setDirection(reflectionDir);
+        ray->depth += 1;
         Intersect reflectionIntersect = Intersect();
-        if (reflectionRay->cast(shapes, reflectionIntersect, intersect.hitShape)) {
-            colour += mat.specular * calculateLighting(reflectionRay, reflectionIntersect);
+        if (ray->cast(shapes, reflectionIntersect, intersect.hitShape)) {
+            colour += mat.specular * calculateLighting(ray, reflectionIntersect);
         }
+
         renderInfo.reflectionRays += 1;
-        delete reflectionRay;
     }
+    ray->depth = 0;
 
     return colour;
 #else
@@ -464,6 +469,7 @@ int main() {
             ImGui::InputInt("Soft Shadow Samples", &renderSettings.softShadowSamples);
             ImGui::Separator();
             ImGui::Checkbox("Reflections", &renderSettings.reflections);
+            ImGui::InputInt("Max Reflection Depth", &renderSettings.maxReflectionDepth);
         }
         ImGui::End();
 
