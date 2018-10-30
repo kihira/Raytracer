@@ -67,7 +67,8 @@ struct RenderInfo {
     long long renderTime;
     unsigned long objects;
     int primaryRays;
-    int secondaryRays;
+    int shadowRays;
+    int reflectionRays;
 } renderInfo;
 
 struct RenderSettings {
@@ -120,6 +121,8 @@ glm::vec3 calculateLighting(Ray *ray, Intersect &intersect) {
     float zStart = light->getPosition().z - light->getSize().z / 2.f;
     glm::vec3 colour(0.f);
 
+    glm::vec3 normal = intersect.hitShape->getNormal(intersect);
+    glm::vec3 viewDir = ray->direction * -1.f;
     Ray *shadowRay = new Ray(intersect.hitPoint, intersect.hitPoint);
 
     // Shoot out multiple rays for soft shadows
@@ -136,12 +139,7 @@ glm::vec3 calculateLighting(Ray *ray, Intersect &intersect) {
                 continue;
             }
 
-            glm::vec3 normal = intersect.hitShape->getNormal(intersect);
             glm::vec3 reflection = 2.f * glm::dot(lightRay, normal) * normal - lightRay;
-            glm::vec3 viewDir = ray->direction * -1.f;
-
-            // Reflection
-            glm::vec3 reflectionRay = 2.f * glm::dot(ray->direction, normal) * normal - ray->direction;
 
             colour += mat.ambient * light->getAmbientIntensity(); // Ambient
             colour += mat.diffuse * (light->getIntensity() * fmax(0.f, glm::dot(lightRay, normal))); // Diffuse
@@ -149,8 +147,20 @@ glm::vec3 calculateLighting(Ray *ray, Intersect &intersect) {
                       pow(fmax(0.f, glm::dot(reflection, viewDir)), mat.shininess); // Specular
         }
     }
-
+    renderInfo.shadowRays += renderSettings.softShadowSamples;
     delete shadowRay;
+
+    // Calculate reflections
+    if (mat.shininess > 0.f) {
+        glm::vec3 reflectionDir = 2.f * glm::dot(ray->direction, normal) * normal - ray->direction;
+        Ray *reflectionRay = new Ray(intersect.hitPoint, reflectionDir);
+        Intersect reflectionIntersect = Intersect();
+        if (reflectionRay->cast(shapes, reflectionIntersect, intersect.hitShape)) {
+            colour += mat.specular * calculateLighting(reflectionRay, reflectionIntersect);
+        }
+        renderInfo.reflectionRays += 1;
+        delete reflectionRay;
+    }
 
     return colour / renderSettings.softShadowSamples;
 #else
@@ -189,20 +199,27 @@ static void raycast(int xStart, int xCount, Ray *ray) {
             } else {
                 image->setValue(x, y, image->getBackground());
             }
+            renderInfo.primaryRays += 1;
         }
     }
 }
 
+/**
+ * Renders the main scene
+ */
 void renderScene() {
     using namespace std::chrono;
     std::cout << "Starting render..." << std::endl << std::endl;
     milliseconds startTime = duration_cast<milliseconds>(system_clock::now().time_since_epoch());
+    renderInfo.primaryRays = 0;
+    renderInfo.reflectionRays = 0;
+    renderInfo.shadowRays = 0;
 
     // Pre calculate soft shadow samples
     renderSettings.sssSqrt = sqrtf(renderSettings.softShadowSamples);
 
 #ifdef THREADS
-    int xPortions = image->getWidth() / 4;
+    int xPortions = image->getWidth() / THREADS;
 
     for (int i = 0; i < THREADS; ++i) {
         threads[i] = std::thread([xPortions, i](){ return raycast(xPortions * i, xPortions, rays[i]);});
@@ -231,6 +248,9 @@ void renderScene() {
               << "================" << std::endl << std::endl;
 }
 
+/**
+ * Creates the objects in the scene
+ */
 inline void initScene() {
     // Create spheres
     shapes.push_back(new Sphere(glm::vec3(0, 0, -20), 4,
@@ -272,6 +292,9 @@ inline void initScene() {
     light = std::unique_ptr<BoxLight>(new BoxLight(glm::vec3(-4.5f, 20.f, -4.5f), glm::vec3(9.f, .1f, 9.f), glm::vec3(.2f, .2f, .2f), glm::vec3(1.f, 1.f, 1.f)));
 }
 
+/**
+ * Handles key input
+ */
 void glfwKeyCallback(GLFWwindow *window, int key, int scancode, int action, int mods) {
     if (action != GLFW_PRESS) return;
 
@@ -432,8 +455,9 @@ int main() {
         if (ImGui::Begin("Render Statistics")) {
             ImGui::LabelText("Time", "%lli ms", renderInfo.renderTime);
             ImGui::LabelText("Objects", "%lu", renderInfo.objects);
-            //ImGui::LabelText("Primary rays: ");
-            //ImGui::LabelText("Secondary rays: ");
+            ImGui::LabelText("Primary rays", "%i", renderInfo.primaryRays);
+            ImGui::LabelText("Shadow rays", "%i", renderInfo.shadowRays);
+            ImGui::LabelText("Reflection rays", "%i", renderInfo.reflectionRays);
         }
         ImGui::End();
 
