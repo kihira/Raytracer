@@ -271,13 +271,12 @@ void renderScene() {
 inline void initScene() {
     // Create spheres
     shapes.push_back(new Sphere(glm::vec3(0, 0, -20), 4,
-                                {glm::vec3(1.f, .32f, .36f), glm::vec3(1.f, .32f, .36f), glm::vec3(.7f, .7f, .7f), 128.f}));
+                                {glm::vec3(1.f, .32f, .36f), glm::vec3(1.f, .32f, .36f), glm::vec3(.2f), 20.f}));
     shapes.push_back(new Sphere(glm::vec3(5, -1, -15), 2,
-                                {glm::vec3(.9f, .76f, .46f), glm::vec3(.9f, .76f, .46f), glm::vec3(.7f, .7f, .7f), 128.f}));
+                                {glm::vec3(.9f, .76f, .46f), glm::vec3(.9f, .76f, .46f), glm::vec3(.9f), 20.f}));
     shapes.push_back(new Sphere(glm::vec3(5, 0, -25), 3,
-                                {glm::vec3(.65f, .77f, .97f), glm::vec3(.65f, .77f, .97f), glm::vec3(.7f, .7f, .7f), 128.f}));
-    shapes.push_back(new Sphere(glm::vec3(-5.5, 0, -15), 3,
-                                {glm::vec3(.9f, .9f, .9f), glm::vec3(.9f, .9f, .9f), glm::vec3(.7f, .7f, .7f), 128.f}));
+                                {glm::vec3(.65f, .77f, .97f), glm::vec3(.65f, .77f, .97f), glm::vec3(.5f), 20.f}));
+    shapes.push_back(new Sphere(glm::vec3(-5.5, 0, -15), 3, {glm::vec3(.9f), glm::vec3(.9f), glm::vec3(.5f), 20.f}));
 
     // triangle
 //    shapes.push_back(new Triangle(
