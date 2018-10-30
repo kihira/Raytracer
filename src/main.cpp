@@ -109,6 +109,10 @@ void write(Image *image) {
     ofs.close();
 }
 
+/**
+ * Generates a number between 0.f and renderSettings.shadowJitter (1.f max)
+ * @return The random shadow jitter
+ */
 inline float getShadowJitter() {
     return ((rand() % 100) / 100.f) * renderSettings.shadowJitter;
 }
@@ -448,23 +452,29 @@ int main() {
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
 
-        // Controls
-        if (ImGui::Begin("Camera")) {
+        if (ImGui::Begin("Scene Settings")) {
+            ImGui::Text("%s", "Camera");
+            ImGui::Separator();
             ImGui::DragFloat3("Position", &camera.position[0], 1.f);
             ImGui::SliderFloat("FOV", &camera.fov, 45.f, 180.f);
-            if (ImGui::Button("Render")) {
-                renderScene();
-            }
-        }
-        ImGui::End();
 
-        if (ImGui::Begin("Render Settings")) {
+            ImGui::Separator();
+            ImGui::Text("%s", "Shadow");
+            ImGui::Separator();
             ImGui::Checkbox("Shadows", &renderSettings.shadows);
             ImGui::DragFloat("Shadow Jitter", &renderSettings.shadowJitter, .1f, 0.f, 1.f);
             ImGui::InputInt("Soft Shadow Samples", &renderSettings.softShadowSamples);
+
+            ImGui::Separator();
+            ImGui::Text("%s", "Reflections");
             ImGui::Separator();
             ImGui::Checkbox("Reflections", &renderSettings.reflections);
             ImGui::InputInt("Max Reflection Depth", &renderSettings.maxReflectionDepth);
+
+            ImGui::Separator();
+            if (ImGui::Button("Render")) {
+                renderScene();
+            }
         }
         ImGui::End();
 
