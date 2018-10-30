@@ -19,11 +19,9 @@
 #include "light.h"
 #include "boxLight.h"
 
+#define EPSILON 1e-4
 #define THREADS 4
 #define LIGHTING
-#define SOFT_SHADOW_SAMPLES 64
-#define SSS_SQRT sqrtf(SOFT_SHADOW_SAMPLES)
-#define SHADOW_JITTER
 
 static const char *vertexShaderSource = R"(
 #version 330
@@ -72,6 +70,12 @@ struct RenderInfo {
     int secondaryRays;
 } renderInfo;
 
+struct RenderSettings {
+    int softShadowSamples = 64;
+    float sssSqrt = 8;
+    float shadowJitter = 1.f;
+} renderSettings;
+
 std::unique_ptr<Image> image;
 std::unique_ptr<BoxLight> light;
 std::vector<Shape *> shapes;
@@ -101,8 +105,8 @@ void write(Image *image) {
     ofs.close();
 }
 
-inline float getRandom() {
-    return (rand() % 100) / 100.f;
+inline float getShadowJitter() {
+    return ((rand() % 100) / 100.f) * renderSettings.shadowJitter;
 }
 
 glm::vec3 calculateLighting(Ray *ray, Intersect &intersect) {
@@ -110,37 +114,34 @@ glm::vec3 calculateLighting(Ray *ray, Intersect &intersect) {
     Material mat = intersect.hitShape->getMaterial();
     intersect.hitPoint = ray->origin + ray->direction * intersect.distance;
 
-    glm::vec3 rayDirection = ray->direction;
-    float xSpacing = light->getSize().x / SSS_SQRT;
-    float zSpacing = light->getSize().z / SSS_SQRT;
+    float xSpacing = light->getSize().x / renderSettings.sssSqrt;
+    float zSpacing = light->getSize().z / renderSettings.sssSqrt;
     float xStart = light->getPosition().x - light->getSize().x / 2.f;
     float zStart = light->getPosition().z - light->getSize().z / 2.f;
     glm::vec3 colour(0.f);
 
-    // Reuse ray for shadows
-    // TODO seperate ray for shadow? might be tricky with multithreading
-    ray->setOrigin(intersect.hitPoint);
+    Ray *shadowRay = new Ray(intersect.hitPoint, intersect.hitPoint);
 
     // Shoot out multiple rays for soft shadows
-    for (int x = 0; x < SSS_SQRT; ++x) {
-        for (int z = 0; z < SSS_SQRT; ++z) {
-#ifdef SHADOW_JITTER
-            glm::vec3 lightRay = glm::normalize(glm::vec3(xStart + xSpacing * x + (xSpacing * getRandom()), light->getPosition().y, zStart + zSpacing * z + (xSpacing * getRandom())) - intersect.hitPoint);
-#else
-            glm::vec3 lightRay = glm::normalize(glm::vec3(xStart + xSpacing * x, light->getPosition().y, zStart + zSpacing * z) - intersect.hitPoint);
-#endif
+    for (int x = 0; x < renderSettings.sssSqrt; ++x) {
+        for (int z = 0; z < renderSettings.sssSqrt; ++z) {
+            glm::vec3 lightRay = glm::normalize(glm::vec3(xStart + xSpacing * x + (xSpacing * getShadowJitter()), light->getPosition().y, zStart + zSpacing * z + (xSpacing *
+                    getShadowJitter())) - intersect.hitPoint);
 
-            ray->setDirection(lightRay);
+            shadowRay->setDirection(lightRay);
 
             Intersect shadowIntersect = Intersect();
-            if (ray->cast(shapes, shadowIntersect, intersect.hitShape)) {
+            if (shadowRay->cast(shapes, shadowIntersect, intersect.hitShape)) {
                 colour += mat.ambient * light->getAmbientIntensity();
                 continue;
             }
 
             glm::vec3 normal = intersect.hitShape->getNormal(intersect);
             glm::vec3 reflection = 2.f * glm::dot(lightRay, normal) * normal - lightRay;
-            glm::vec3 viewDir = rayDirection * -1.f;
+            glm::vec3 viewDir = ray->direction * -1.f;
+
+            // Reflection
+            glm::vec3 reflectionRay = 2.f * glm::dot(ray->direction, normal) * normal - ray->direction;
 
             colour += mat.ambient * light->getAmbientIntensity(); // Ambient
             colour += mat.diffuse * (light->getIntensity() * fmax(0.f, glm::dot(lightRay, normal))); // Diffuse
@@ -149,7 +150,9 @@ glm::vec3 calculateLighting(Ray *ray, Intersect &intersect) {
         }
     }
 
-    return glm::vec3(colour.r / SOFT_SHADOW_SAMPLES, colour.g / SOFT_SHADOW_SAMPLES, colour.b / SOFT_SHADOW_SAMPLES);
+    delete shadowRay;
+
+    return colour / renderSettings.softShadowSamples;
 #else
     return shape->getMaterial().diffuse;
 #endif
@@ -194,6 +197,9 @@ void renderScene() {
     using namespace std::chrono;
     std::cout << "Starting render..." << std::endl << std::endl;
     milliseconds startTime = duration_cast<milliseconds>(system_clock::now().time_since_epoch());
+
+    // Pre calculate soft shadow samples
+    renderSettings.sssSqrt = sqrtf(renderSettings.softShadowSamples);
 
 #ifdef THREADS
     int xPortions = image->getWidth() / 4;
@@ -417,6 +423,12 @@ int main() {
         }
         ImGui::End();
 
+        if (ImGui::Begin("Render Settings")) {
+            ImGui::DragFloat("Shadow Jitter", &renderSettings.shadowJitter, .1f, 0.f, 1.f);
+            ImGui::InputInt("Soft Shadow Samples", &renderSettings.softShadowSamples);
+        }
+        ImGui::End();
+
         if (ImGui::Begin("Render Statistics")) {
             ImGui::LabelText("Time", "%lli ms", renderInfo.renderTime);
             ImGui::LabelText("Objects", "%lu", renderInfo.objects);
@@ -424,11 +436,6 @@ int main() {
             //ImGui::LabelText("Secondary rays: ");
         }
         ImGui::End();
-
-        // Render
-#ifdef RENDER_ON_UPDATE
-        renderScene(image);
-#endif
 
         // Draw result
         glDrawArrays(GL_TRIANGLES, 0, 6);
