@@ -75,6 +75,7 @@ struct RenderSettings {
     int softShadowSamples = 64;
     float sssSqrt = 8;
     float shadowJitter = 1.f;
+    bool shadows = true;
 } renderSettings;
 
 std::unique_ptr<Image> image;
@@ -114,45 +115,55 @@ glm::vec3 calculateLighting(Ray *ray, Intersect &intersect) {
 #ifdef LIGHTING
     Material mat = intersect.hitShape->getMaterial();
     intersect.hitPoint = ray->origin + ray->direction * intersect.distance;
-
-    float xSpacing = light->getSize().x / renderSettings.sssSqrt;
-    float zSpacing = light->getSize().z / renderSettings.sssSqrt;
-    float xStart = light->getPosition().x - light->getSize().x / 2.f;
-    float zStart = light->getPosition().z - light->getSize().z / 2.f;
-    glm::vec3 colour(0.f);
-
     glm::vec3 normal = intersect.hitShape->getNormal(intersect);
     glm::vec3 viewDir = ray->direction * -1.f;
-    Ray *shadowRay = new Ray(intersect.hitPoint, intersect.hitPoint);
+    glm::vec3 colour(0.f);
 
-    // Shoot out multiple rays for soft shadows
-    for (int x = 0; x < renderSettings.sssSqrt; ++x) {
-        for (int z = 0; z < renderSettings.sssSqrt; ++z) {
-            glm::vec3 lightRay = glm::normalize(glm::vec3(xStart + xSpacing * x + (xSpacing * getShadowJitter()), light->getPosition().y, zStart + zSpacing * z + (xSpacing *
-                    getShadowJitter())) - intersect.hitPoint);
+    if (renderSettings.shadows) {
+        float xSpacing = light->getSize().x / renderSettings.sssSqrt;
+        float zSpacing = light->getSize().z / renderSettings.sssSqrt;
+        float xStart = light->getPosition().x - light->getSize().x / 2.f;
+        float zStart = light->getPosition().z - light->getSize().z / 2.f;
 
-            shadowRay->setDirection(lightRay);
+        Ray *shadowRay = new Ray(intersect.hitPoint, intersect.hitPoint);
 
-            Intersect shadowIntersect = Intersect();
-            if (shadowRay->cast(shapes, shadowIntersect, intersect.hitShape)) {
-                colour += mat.ambient * light->getAmbientIntensity();
-                continue;
+        // Shoot out multiple rays for soft shadows
+        for (int x = 0; x < renderSettings.sssSqrt; ++x) {
+            for (int z = 0; z < renderSettings.sssSqrt; ++z) {
+                glm::vec3 lightRay = glm::normalize(glm::vec3(xStart + xSpacing * x + (xSpacing * getShadowJitter()), light->getPosition().y, zStart + zSpacing * z + (xSpacing * getShadowJitter())) - intersect.hitPoint);
+                shadowRay->setDirection(lightRay);
+
+                Intersect shadowIntersect = Intersect();
+                if (shadowRay->cast(shapes, shadowIntersect, intersect.hitShape)) {
+                    colour += mat.ambient * light->getAmbientIntensity();
+                    continue;
+                }
+
+                glm::vec3 reflection = 2.f * glm::dot(lightRay, normal) * normal - lightRay;
+
+                colour += mat.ambient * light->getAmbientIntensity(); // Ambient
+                colour += mat.diffuse * (light->getIntensity() * fmax(0.f, glm::dot(lightRay, normal))); // Diffuse
+                colour += mat.specular * light->getIntensity() *
+                          pow(fmax(0.f, glm::dot(reflection, viewDir)), mat.shininess); // Specular
             }
-
-            glm::vec3 reflection = 2.f * glm::dot(lightRay, normal) * normal - lightRay;
-
-            colour += mat.ambient * light->getAmbientIntensity(); // Ambient
-            colour += mat.diffuse * (light->getIntensity() * fmax(0.f, glm::dot(lightRay, normal))); // Diffuse
-            colour += mat.specular * light->getIntensity() *
-                      pow(fmax(0.f, glm::dot(reflection, viewDir)), mat.shininess); // Specular
         }
+
+        colour /= renderSettings.softShadowSamples; // Must divide here, not later otherwise it'll cancel out the reflection
+        renderInfo.shadowRays += renderSettings.softShadowSamples;
+        delete shadowRay;
+    } else {
+        glm::vec3 lightRay = glm::normalize(light->getPosition() - intersect.hitPoint);
+        glm::vec3 reflection = 2.f * glm::dot(lightRay, normal) * normal - lightRay;
+
+        colour += mat.ambient * light->getAmbientIntensity(); // Ambient
+        colour += mat.diffuse * (light->getIntensity() * fmax(0.f, glm::dot(lightRay, normal))); // Diffuse
+        colour += mat.specular * light->getIntensity() *
+                  pow(fmax(0.f, glm::dot(reflection, viewDir)), mat.shininess); // Specular
     }
-    renderInfo.shadowRays += renderSettings.softShadowSamples;
-    delete shadowRay;
 
     // Calculate reflections
     if (mat.shininess > 0.f) {
-        glm::vec3 reflectionDir = 2.f * glm::dot(ray->direction, normal) * normal - ray->direction;
+        glm::vec3 reflectionDir = ray->direction - 2.f * glm::dot(ray->direction, normal) * normal;
         Ray *reflectionRay = new Ray(intersect.hitPoint, reflectionDir);
         Intersect reflectionIntersect = Intersect();
         if (reflectionRay->cast(shapes, reflectionIntersect, intersect.hitShape)) {
@@ -162,7 +173,7 @@ glm::vec3 calculateLighting(Ray *ray, Intersect &intersect) {
         delete reflectionRay;
     }
 
-    return colour / renderSettings.softShadowSamples;
+    return colour;
 #else
     return shape->getMaterial().diffuse;
 #endif
@@ -447,6 +458,7 @@ int main() {
         ImGui::End();
 
         if (ImGui::Begin("Render Settings")) {
+            ImGui::Checkbox("Shadows", &renderSettings.shadows);
             ImGui::DragFloat("Shadow Jitter", &renderSettings.shadowJitter, .1f, 0.f, 1.f);
             ImGui::InputInt("Soft Shadow Samples", &renderSettings.softShadowSamples);
         }
