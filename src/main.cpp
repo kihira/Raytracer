@@ -76,6 +76,7 @@ struct RenderSettings {
     float sssSqrt = 8;
     float shadowJitter = 1.f;
     bool shadows = true;
+    bool reflections = true;
 } renderSettings;
 
 std::unique_ptr<Image> image;
@@ -162,7 +163,7 @@ glm::vec3 calculateLighting(Ray *ray, Intersect &intersect) {
     }
 
     // Calculate reflections
-    if (mat.shininess > 0.f) {
+    if (mat.shininess > 0.f && renderSettings.reflections) {
         glm::vec3 reflectionDir = ray->direction - 2.f * glm::dot(ray->direction, normal) * normal;
         Ray *reflectionRay = new Ray(intersect.hitPoint, reflectionDir);
         Intersect reflectionIntersect = Intersect();
@@ -461,6 +462,8 @@ int main() {
             ImGui::Checkbox("Shadows", &renderSettings.shadows);
             ImGui::DragFloat("Shadow Jitter", &renderSettings.shadowJitter, .1f, 0.f, 1.f);
             ImGui::InputInt("Soft Shadow Samples", &renderSettings.softShadowSamples);
+            ImGui::Separator();
+            ImGui::Checkbox("Reflections", &renderSettings.reflections);
         }
         ImGui::End();
 
