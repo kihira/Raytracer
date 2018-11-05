@@ -11,8 +11,8 @@ struct Material {
     glm::vec3 specular;
     float shininess;
 
-    Material(glm::vec3 colour, glm::vec3 specular, float shininess);
-    Material(glm::vec3 &ambient, glm::vec3 &diffuse, glm::vec3 &specular, float shininess);
+    Material(glm::vec3 color, glm::vec3 specular, float shininess);
+    Material(glm::vec3 ambient, glm::vec3 diffuse, glm::vec3 specular, float shininess);
 };
 
 class Shape {
@@ -30,7 +30,7 @@ public:
 protected:
     glm::mat4 modelMatrix;
     glm::vec3 position;
-    glm::vec3 rotation;
+	glm::vec3 rotation{ 0.f, 0.f, 0.f };
     glm::vec3 normal;
     Material material;
 };
