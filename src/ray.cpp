@@ -26,6 +26,7 @@ bool Ray::cast(std::vector<Shape *> &shapes, Intersect &intersect, Shape *ignore
 
 void Ray::setDirection(const glm::vec3 &direction) {
     Ray::direction = direction;
+	invDirection = 1.f / direction;
 }
 
 void Ray::setOrigin(const glm::vec3 &origin) {

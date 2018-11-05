@@ -27,31 +27,24 @@ Mesh::Mesh(const glm::vec3 &position, std::vector<Triangle *> triangles, const M
 
 bool Mesh::intersects(Ray *ray, float *distance, glm::vec2 &uv, int *triangleIndex) {
     // Check if it intersects bounding box first
-    float tMin = (minBounds.x - ray->origin.x) / ray->direction.x;
-    float tMax = (maxBounds.x - ray->origin.x) / ray->direction.x;
-    if (tMin > tMax) std::swap(tMin, tMax);
+	glm::vec3 tMin = (minBounds - ray->origin) * ray->invDirection;
+	glm::vec3 tMax = (maxBounds - ray->origin) * ray->invDirection;
+    if (tMin.x > tMax.x) std::swap(tMin.x, tMax.x);
+    if (tMin.y > tMax.y) std::swap(tMin.y, tMax.y);
 
-    float tyMin = (minBounds.y - ray->origin.y) / ray->direction.y;
-    float tyMax = (maxBounds.y - ray->origin.y) / ray->direction.y;
-    if (tyMin > tyMax) std::swap(tyMin, tyMax);
+    if (tMin.x > tMax.y || tMin.y > tMax.x) return false;
 
-    if (tMin > tyMax || tyMin > tMax) return false;
-
-    if (tyMin > tMin) {
-        tMin = tyMin;
+    if (tMin.y > tMin.x) {
+        tMin.x = tMin.y;
     }
 
-    if (tyMax < tMax) {
-        tMax = tyMax;
+    if (tMax.y < tMax.x) {
+        tMax.x = tMax.y;
     }
 
-    float tzmin = (minBounds.z - ray->origin.z) / ray->direction.z;
-    float tzmax = (maxBounds.z - ray->origin.z) / ray->direction.z;
+    if (tMin.z > tMax.z) std::swap(tMin.z, tMax.z);
 
-    if (tzmin > tzmax) std::swap(tzmin, tzmax);
-
-    if ((tMin > tzmax) || (tzmin > tMax))
-        return false;
+    if (tMin.x > tMax.z || tMin.z > tMax.x) return false;
 
 	// Loop through the triangles and find the closest one
 	// This is effectively the same code as Ray::cast

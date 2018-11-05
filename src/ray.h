@@ -20,6 +20,7 @@ struct Intersect {
 class Ray {
 public:
     glm::vec3 direction;
+	glm::vec3 invDirection;
     glm::vec3 origin;
     int depth;
 
