@@ -8,7 +8,6 @@
 #include <ext.hpp>
 #include <thread>
 #include <objloader.h>
-#include <gtx/euler_angles.hpp>
 #include <imgui.h>
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_opengl3.h>
@@ -99,19 +98,19 @@ void glErrorCheck() {
     }
 }
 
-void write(Image *image) {
-    std::ofstream ofs("./untitled.ppm", std::ios::out | std::ios::binary);
+void write() {
+    std::ofstream ofs("./image.ppm", std::ios::out | std::ios::binary);
     ofs << "P6\n" << image->getWidth() << " " << image->getHeight() << "\n255\n";
 
-    for (int y = 0; y < image->getHeight(); ++y) {
-        for (int x = 0; x < image->getWidth(); ++x) {
-            glm::vec3 data = image->getValue(x, y);
-            ofs << static_cast<unsigned char>(data.x * 255)
-                << static_cast<unsigned char>(data.y * 255)
-                << static_cast<unsigned char>(data.z * 255);
+	// Start top left, go left to right, top to bottom
+    for (auto y = 0; y < image->getHeight(); ++y) {
+        for (auto x = 0; x < image->getWidth(); ++x) {
+	        const auto data = image->getValue(x, y);
+            ofs << static_cast<unsigned char>(data.r * 255)
+                << static_cast<unsigned char>(data.g * 255)
+                << static_cast<unsigned char>(data.b * 255);
         }
     }
-
     ofs.close();
 }
 
@@ -480,12 +479,16 @@ int main() {
             if (ImGui::Button("Render")) {
                 renderScene();
             }
+			if (ImGui::Button("Save to disk")) {
+				write();
+			}
         }
         ImGui::End();
 
         if (ImGui::Begin("Render Statistics")) {
             ImGui::LabelText("Time", "%lli ms", gRenderInfos[0].renderTime);
-            ImGui::LabelText("Objects", "%lu", shapes.size());
+            ImGui::LabelText("Objects", "%i", shapes.size());
+			ImGui::LabelText("Resolution", "%ix%i", image->getWidth(), image->getHeight());
             ImGui::LabelText("Primary rays", "%i", gRenderInfos[0].primaryRays);
             ImGui::LabelText("Shadow rays", "%i", gRenderInfos[0].shadowRays);
             ImGui::LabelText("Reflection rays", "%i", gRenderInfos[0].reflectionRays);

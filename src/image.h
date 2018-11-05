@@ -16,15 +16,15 @@ public:
      * @param y The y coordination
      * @return The colour value
      */
-    glm::vec3 &getValue(int &x, int &y);
+    glm::vec3 &getValue(int &x, int &y) const;
 
     /**
-     * Sets the colour value of the pixel at this position
+     * Sets the color value of the pixel at this position
      * @param x The x coordination
      * @param y The y coordination
-     * @param colour The colour value
+     * @param color The color value
      */
-    void setValue(int &x, int &y, glm::vec3 colour);
+    void setValue(int &x, int &y, glm::vec3 color) const;
 
     /**
      * A pointer to the pixel data for this image
