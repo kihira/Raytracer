@@ -1,12 +1,20 @@
 #include "triangle.h"
 
+#define GLM_ENABLE_EXPERIMENTAL
+
 #define EPSILON 1e-6f
 // #define CULL_BACKFACE
 
-Triangle::Triangle(glm::vec3 position, glm::vec3 *vertices, glm::vec3 *normals, Material material) : Shape(position, material), vertices(vertices), normals(normals) {
+Triangle::Triangle(glm::vec3 position, glm::vec3 *vertices, glm::vec3 *normals, Material material) : Shape(position, material) {
     Triangle::vertices[0] = modelMatrix * glm::vec4(vertices[0], 1);
-    Triangle::vertices[1] = modelMatrix * glm::vec4(vertices[1], 1);
-    Triangle::vertices[2] = modelMatrix * glm::vec4(vertices[2], 1);
+	Triangle::vertices[1] = modelMatrix * glm::vec4(vertices[1], 1);
+	Triangle::vertices[2] = modelMatrix * glm::vec4(vertices[2], 1);
+
+	// Need to manually copy normals over as otherwise the other memory falls out of scope
+	// memcpy(normals, this->normals, sizeof(glm::vec3) * 3);
+	this->normals[0] = normals[0];
+	this->normals[1] = normals[1];
+	this->normals[2] = normals[2];
 }
 
 bool Triangle::intersects(Ray *ray, float *distance, glm::vec2 &uv) {

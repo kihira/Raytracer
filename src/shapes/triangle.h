@@ -6,8 +6,8 @@
 
 class Triangle : public Shape {
 private:
-    glm::vec3 *vertices;
-    glm::vec3 *normals;
+    glm::vec3 vertices[3];
+    glm::vec3 normals[3];
 public:
     bool intersects(Ray *ray, float *distance, glm::vec2 &uv) override;
 

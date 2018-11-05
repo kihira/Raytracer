@@ -75,9 +75,9 @@ struct RenderSettings {
     int softShadowSamples = 64;
     float sssSqrt = 8;
     float shadowJitter = 1.f;
-    bool shadows = true;
+    bool shadows = false;
     bool reflections = true;
-    int maxReflectionDepth = 4;
+    int maxReflectionDepth = 1;
 } renderSettings;
 
 std::unique_ptr<Image> image;
@@ -185,15 +185,16 @@ glm::vec3 calculateLighting(Ray *ray, Intersect &intersect) {
 
     return colour;
 #else
-    return shape->getMaterial().diffuse;
+    return intersect.hitShape->getMaterial().diffuse;
 #endif
 }
 
-static void raycast(int xStart, int xCount, Ray *ray) {
+static void raycast(int xStart, int xCount) {
     float aspectRatio = (float) image->getWidth() / image->getHeight();
     float fovHalfTan = tanf(glm::radians(camera.fov) / 2.f);
     glm::vec2 normalised, remapped;
     glm::vec3 cameraOrigin = camera.viewMatrix * glm::vec4(0.f, 0.f, 0.f, 1.f);
+	Ray *ray = new Ray(cameraOrigin, cameraOrigin);
     ray->setOrigin(cameraOrigin);
 
     for (int x = xStart; x < xStart + xCount; ++x) {
@@ -223,6 +224,8 @@ static void raycast(int xStart, int xCount, Ray *ray) {
             renderInfo.primaryRays += 1;
         }
     }
+
+	delete ray;
 }
 
 /**
@@ -243,7 +246,7 @@ void renderScene() {
     int xPortions = image->getWidth() / THREADS;
 
     for (int i = 0; i < THREADS; ++i) {
-        threads[i] = std::thread([xPortions, i](){ return raycast(xPortions * i, xPortions, rays[i]);});
+        threads[i] = std::thread([xPortions, i](){ return raycast(xPortions * i, xPortions);});
     }
 
     for (auto &thread : threads) {
@@ -274,10 +277,10 @@ void renderScene() {
  */
 inline void initScene() {
     // Create spheres
-    shapes.push_back(new Sphere(glm::vec3(0, 0, -20), 4, {glm::vec3(1.f, .32f, .36f), glm::vec3(.2f), 20.f}));
-    shapes.push_back(new Sphere(glm::vec3(5, -1, -15), 2, {glm::vec3(.9f, .76f, .46f), glm::vec3(.9f), 20.f}));
-    shapes.push_back(new Sphere(glm::vec3(5, 0, -25), 3, {glm::vec3(.65f, .77f, .97f), glm::vec3(.5f), 20.f}));
-    shapes.push_back(new Sphere(glm::vec3(-5.5, 0, -15), 3, {glm::vec3(.9f), glm::vec3(.5f), 20.f}));
+//    shapes.push_back(new Sphere(glm::vec3(0, 0, -20), 4, {glm::vec3(1.f, .32f, .36f), glm::vec3(.2f), 20.f}));
+//    shapes.push_back(new Sphere(glm::vec3(5, -1, -15), 2, {glm::vec3(.9f, .76f, .46f), glm::vec3(.9f), 20.f}));
+//    shapes.push_back(new Sphere(glm::vec3(5, 0, -25), 3, {glm::vec3(.65f, .77f, .97f), glm::vec3(.5f), 20.f}));
+//    shapes.push_back(new Sphere(glm::vec3(-5.5, 0, -15), 3, {glm::vec3(.9f), glm::vec3(.5f), 20.f}));
 
     // triangle
 //    shapes.push_back(new Triangle(
@@ -290,19 +293,18 @@ inline void initScene() {
     shapes.push_back(new Plane(glm::vec3(0.f, -4.f, 0.f), glm::vec3(0.f, -1.f, 0.f), {glm::vec3(.8f), glm::vec3(.7f), 0.f}));
 
     // Teapot
-//    glm::vec3 teapotPosition(0, 5, -10);
-//    std::vector<glm::vec3> vertices;
-//    std::vector<glm::vec3> normals;
-//    Material teapotMat {
-//        glm::vec3(.5f, .5f, 0.f),
-//        glm::vec3(.5f, .5f, 0.f),
-//        glm::vec3(.7f, .7f, .7f),
-//        100.f
-//    };
-//    loadOBJ("./teapot_smooth.obj", vertices, normals);
-//    for (int i = 0; i < vertices.size(); i+=3) {
-//        shapes.push_back(new Triangle(teapotPosition, &vertices[i], &normals[i], teapotMat));
-//    }
+    glm::vec3 teapotPosition(0, 5, -10);
+    std::vector<glm::vec3> vertices;
+    std::vector<glm::vec3> normals;
+    Material teapotMat {
+        glm::vec3(.5f, .5f, 0.f),
+        glm::vec3(.7f, .7f, .7f),
+        100.f
+    };
+    loadOBJ("./teapot_smooth.obj", vertices, normals);
+    for (int i = 0; i < vertices.size(); i+=3) {
+        shapes.push_back(new Triangle(teapotPosition, &vertices[i], &normals[i], teapotMat));
+    }
 
     // Lights
     light = std::unique_ptr<BoxLight>(new BoxLight(glm::vec3(-4.5f, 20.f, -4.5f), glm::vec3(9.f, .1f, 9.f), glm::vec3(.2f), glm::vec3(1.f)));

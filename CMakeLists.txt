@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.12)
+cmake_minimum_required(VERSION 3.04)
 project(322COM_raycaster)
 
 set(CMAKE_CXX_STANDARD 11)
@@ -10,11 +10,11 @@ add_executable(${PROJECT_NAME} ${SOURCES} glad/src/glad.c src/main.cpp src/shape
 include_directories(${PROJECT_NAME} ./glm)
 
 # GLFW
-add_subdirectory(./glfw)
 # Disable GLFW docs, tests and examples
 set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+add_subdirectory(./glfw)
 target_link_libraries(${PROJECT_NAME} glfw)
 
 # GLAD
