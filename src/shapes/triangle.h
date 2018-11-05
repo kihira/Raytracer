@@ -14,6 +14,8 @@ public:
     Triangle(glm::vec3 position, glm::vec3 *vertices, glm::vec3 *normals, Material material);
 
     glm::vec3 getNormal(Intersect &intersect) override;
+
+	glm::vec3 *getVertices();
 };
 
 

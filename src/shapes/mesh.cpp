@@ -1,11 +1,28 @@
 
 #include "mesh.h"
 #include <utility>
+#include <iostream>
 
-Mesh::Mesh(const glm::vec3 &position, const glm::vec3 &minBounds, const glm::vec3 &maxBounds, std::vector<Triangle *> triangles, const Material &material)
-        : Shape(position, material), triangles(std::move(triangles)), minBounds(minBounds), maxBounds(maxBounds)
+Mesh::Mesh(const glm::vec3 &position, std::vector<Triangle *> triangles, const Material &material) : Shape(position, material), triangles(std::move(triangles))
 {
-	
+	// Set min/max to just the first vertex for now
+	minBounds = Mesh::triangles[0]->getVertices()[0];
+	maxBounds = Mesh::triangles[0]->getVertices()[0];
+
+	for (auto triangle : Mesh::triangles)
+	{
+		for (auto i = 0; i < 3; ++i)
+		{
+			auto vertex = triangle->getVertices()[i];
+			if (vertex.x < minBounds.x) minBounds.x = vertex.x;
+			else if (vertex.x > maxBounds.x) maxBounds.x = vertex.x;
+			if (vertex.y < minBounds.y) minBounds.y = vertex.y;
+			else if (vertex.y > maxBounds.y) maxBounds.y = vertex.y;
+			if (vertex.z < minBounds.z) minBounds.z = vertex.z;
+			else if (vertex.z > maxBounds.z) maxBounds.z = vertex.z;
+		}
+	}
+	// Don't need to transform the min/max bounds by position as the vertices positions were already transformed
 }
 
 bool Mesh::intersects(Ray *ray, float *distance, glm::vec2 &uv, int *triangleIndex) {

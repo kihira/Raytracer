@@ -312,7 +312,8 @@ inline void initScene() {
     for (int i = 0; i < vertices.size(); i+=3) {
         triangles.push_back(new Triangle(teapotPosition, &vertices[i], &normals[i], teapotMat));
     }
-    shapes.push_back(new Mesh(teapotPosition, glm::vec3(-7, 2, -13), glm::vec3(1, 6, -7), triangles, teapotMat));
+    // shapes.push_back(new Mesh(teapotPosition, glm::vec3(-7, 2, -13), glm::vec3(1, 6, -7), triangles, teapotMat));
+	shapes.push_back(new Mesh(teapotPosition, triangles, teapotMat));
 
     // Lights
     light = std::unique_ptr<BoxLight>(new BoxLight(glm::vec3(-4.5f, 20.f, -4.5f), glm::vec3(9.f, .1f, 9.f), glm::vec3(.2f), glm::vec3(1.f)));

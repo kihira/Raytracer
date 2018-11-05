@@ -52,3 +52,8 @@ glm::vec3 Triangle::getNormal(Intersect &intersect) {
 
     return normalize(w * normals[0] + intersect.uv.x * normals[1] + intersect.uv.y * normals[2]);
 }
+
+glm::vec3 * Triangle::getVertices()
+{
+	return vertices;
+}
