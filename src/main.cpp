@@ -65,11 +65,16 @@ struct Camera {
 
 struct RenderInfo {
     long long renderTime;
-    unsigned long objects;
     int primaryRays;
     int shadowRays;
     int reflectionRays;
-} renderInfo;
+
+    void reset() {
+        primaryRays = 0;
+        shadowRays = 0;
+        reflectionRays = 0;
+    }
+} gRenderInfos[THREADS];
 
 struct RenderSettings {
     int softShadowSamples = 64;
@@ -117,7 +122,7 @@ inline float getShadowJitter() {
     return ((rand() % 100) / 100.f) * renderSettings.shadowJitter;
 }
 
-glm::vec3 calculateLighting(Ray *ray, Intersect &intersect) {
+glm::vec3 calculateLighting(Ray *ray, Intersect &intersect, RenderInfo &renderInfo) {
 #ifdef LIGHTING
     Material mat = intersect.hitShape->getMaterial();
     intersect.hitPoint = ray->origin + ray->direction * intersect.distance;
@@ -176,7 +181,7 @@ glm::vec3 calculateLighting(Ray *ray, Intersect &intersect) {
         ray->depth += 1;
         Intersect reflectionIntersect = Intersect();
         if (ray->cast(shapes, reflectionIntersect, intersect.hitShape)) {
-            colour += mat.specular * calculateLighting(ray, reflectionIntersect);
+            colour += mat.specular * calculateLighting(ray, reflectionIntersect, renderInfo);
         }
 
         renderInfo.reflectionRays += 1;
@@ -189,7 +194,7 @@ glm::vec3 calculateLighting(Ray *ray, Intersect &intersect) {
 #endif
 }
 
-static void raycast(int xStart, int xCount) {
+static void raycast(int xStart, int xCount, RenderInfo &renderInfo) {
     float aspectRatio = (float) image->getWidth() / image->getHeight();
     float fovHalfTan = tanf(glm::radians(camera.fov) / 2.f);
     glm::vec2 normalised, remapped;
@@ -217,7 +222,7 @@ static void raycast(int xStart, int xCount) {
             // Loop through the shapes and see if we hit
             if (ray->cast(shapes, intersect)) {
                 // Calculate lighting
-                image->setValue(x, y, calculateLighting(ray, intersect));
+                image->setValue(x, y, calculateLighting(ray, intersect, renderInfo));
             } else {
                 image->setValue(x, y, image->getBackground());
             }
@@ -235,38 +240,36 @@ void renderScene() {
     using namespace std::chrono;
     std::cout << "Starting render..." << std::endl << std::endl;
     milliseconds startTime = duration_cast<milliseconds>(system_clock::now().time_since_epoch());
-    renderInfo.primaryRays = 0;
-    renderInfo.reflectionRays = 0;
-    renderInfo.shadowRays = 0;
 
     // Pre calculate soft shadow samples
     renderSettings.sssSqrt = sqrtf(renderSettings.softShadowSamples);
 
-#ifdef THREADS
     int xPortions = image->getWidth() / THREADS;
 
     for (int i = 0; i < THREADS; ++i) {
-        threads[i] = std::thread([xPortions, i](){ return raycast(xPortions * i, xPortions);});
+        threads[i] = std::thread([xPortions, i](){ return raycast(xPortions * i, xPortions, gRenderInfos[i]);});
     }
 
     for (auto &thread : threads) {
         thread.join();
     }
-#else
-    raycast(0, image->getWidth(), rays[0]);
-#endif
 
     // Write image to texture (Don't need to rebind, should be bound)
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, image->getWidth(), image->getHeight(), 0, GL_RGB, GL_FLOAT,
                  image->getData());
     glErrorCheck();
 
-    renderInfo.renderTime = (duration_cast<milliseconds>(system_clock::now().time_since_epoch()) - startTime).count();
-    renderInfo.objects = shapes.size();
+    // HACK: A bit of a hack but works for now
+    for (int j = 1; j < THREADS; ++j) {
+        gRenderInfos[0].primaryRays += gRenderInfos[j].primaryRays;
+        gRenderInfos[0].reflectionRays += gRenderInfos[j].reflectionRays;
+        gRenderInfos[0].shadowRays += gRenderInfos[j].shadowRays;
+    }
+    gRenderInfos[0].renderTime = (duration_cast<milliseconds>(system_clock::now().time_since_epoch()) - startTime).count();
 
     std::cout << "Render Details" << std::endl
               << "================" << std::endl
-              << "Time: " << renderInfo.renderTime
+              << "Time: " << gRenderInfos[0].renderTime
               << "ms" << std::endl
               << "Objects: " << shapes.size() << std::endl
               << "================" << std::endl << std::endl;
@@ -277,10 +280,10 @@ void renderScene() {
  */
 inline void initScene() {
     // Create spheres
-//    shapes.push_back(new Sphere(glm::vec3(0, 0, -20), 4, {glm::vec3(1.f, .32f, .36f), glm::vec3(.2f), 20.f}));
-//    shapes.push_back(new Sphere(glm::vec3(5, -1, -15), 2, {glm::vec3(.9f, .76f, .46f), glm::vec3(.9f), 20.f}));
-//    shapes.push_back(new Sphere(glm::vec3(5, 0, -25), 3, {glm::vec3(.65f, .77f, .97f), glm::vec3(.5f), 20.f}));
-//    shapes.push_back(new Sphere(glm::vec3(-5.5, 0, -15), 3, {glm::vec3(.9f), glm::vec3(.5f), 20.f}));
+    shapes.push_back(new Sphere(glm::vec3(0, 0, -20), 4, {glm::vec3(1.f, .32f, .36f), glm::vec3(.2f), 20.f}));
+    shapes.push_back(new Sphere(glm::vec3(5, -1, -15), 2, {glm::vec3(.9f, .76f, .46f), glm::vec3(.9f), 20.f}));
+    shapes.push_back(new Sphere(glm::vec3(5, 0, -25), 3, {glm::vec3(.65f, .77f, .97f), glm::vec3(.5f), 20.f}));
+    shapes.push_back(new Sphere(glm::vec3(-5.5, 0, -15), 3, {glm::vec3(.9f), glm::vec3(.5f), 20.f}));
 
     // triangle
 //    shapes.push_back(new Triangle(
@@ -293,7 +296,7 @@ inline void initScene() {
     shapes.push_back(new Plane(glm::vec3(0.f, -4.f, 0.f), glm::vec3(0.f, -1.f, 0.f), {glm::vec3(.8f), glm::vec3(.7f), 0.f}));
 
     // Teapot
-    glm::vec3 teapotPosition(0, 5, -10);
+    glm::vec3 teapotPosition(0, 2, -10);
     std::vector<glm::vec3> vertices;
     std::vector<glm::vec3> normals;
     Material teapotMat {
@@ -481,11 +484,11 @@ int main() {
         ImGui::End();
 
         if (ImGui::Begin("Render Statistics")) {
-            ImGui::LabelText("Time", "%lli ms", renderInfo.renderTime);
-            ImGui::LabelText("Objects", "%lu", renderInfo.objects);
-            ImGui::LabelText("Primary rays", "%i", renderInfo.primaryRays);
-            ImGui::LabelText("Shadow rays", "%i", renderInfo.shadowRays);
-            ImGui::LabelText("Reflection rays", "%i", renderInfo.reflectionRays);
+            ImGui::LabelText("Time", "%lli ms", gRenderInfos[0].renderTime);
+            ImGui::LabelText("Objects", "%lu", shapes.size());
+            ImGui::LabelText("Primary rays", "%i", gRenderInfos[0].primaryRays);
+            ImGui::LabelText("Shadow rays", "%i", gRenderInfos[0].shadowRays);
+            ImGui::LabelText("Reflection rays", "%i", gRenderInfos[0].reflectionRays);
         }
         ImGui::End();
 
