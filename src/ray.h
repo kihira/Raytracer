@@ -13,7 +13,9 @@ struct Intersect {
     glm::vec2 uv; // Used for triangle
     glm::vec3 hitPoint;
     void reset() {
-        hitShape = nullptr;
+		hitShape = nullptr;
+		distance = 0.f;
+		triangleIndex = 0;
     }
 };
 
