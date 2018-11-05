@@ -1,8 +1,12 @@
 
 #include "mesh.h"
+#include <utility>
 
-Mesh::Mesh(const glm::vec3 &position, const glm::vec3 &minBounds, const glm::vec3 &maxBounds, const std::vector<Triangle *> triangles, const Material &material)
-        : Shape(position, material), minBounds(minBounds), maxBounds(maxBounds), triangles(triangles) {}
+Mesh::Mesh(const glm::vec3 &position, const glm::vec3 &minBounds, const glm::vec3 &maxBounds, std::vector<Triangle *> triangles, const Material &material)
+        : Shape(position, material), triangles(std::move(triangles)), minBounds(minBounds), maxBounds(maxBounds)
+{
+	
+}
 
 bool Mesh::intersects(Ray *ray, float *distance, glm::vec2 &uv, int *triangleIndex) {
     // Check if it intersects bounding box first
@@ -32,18 +36,20 @@ bool Mesh::intersects(Ray *ray, float *distance, glm::vec2 &uv, int *triangleInd
     if ((tMin > tzmax) || (tzmin > tMax))
         return false;
 
-    bool result;
-    for (int i = 0; i < triangles.size(); ++i) {
-        result = triangles[i]->intersects(ray, distance, uv, nullptr);
-        if (result) {
-            triangleIndex = &i;
-            return true;
+	// Loop through the triangles and find the closest one
+	// This is effectively the same code as Ray::cast
+	auto distance2 = 0.f;
+	glm::vec2 uv2;
+    for (auto i = 0; i < triangles.size(); ++i) {
+        if (triangles[i]->intersects(ray, &distance2, uv2, nullptr) && distance2 > 0.f && distance2 < *distance) {
+			*distance = distance2;
+            *triangleIndex = i;
+			uv = uv2;
         }
     }
-    return false;
+    return *triangleIndex > -1;
 }
 
 glm::vec3 Mesh::getNormal(Intersect &intersect) {
-    // intersect.hitShape
     return triangles[intersect.triangleIndex]->getNormal(intersect);
 }

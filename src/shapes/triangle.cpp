@@ -12,9 +12,9 @@ Triangle::Triangle(glm::vec3 position, glm::vec3 *vertices, glm::vec3 *normals, 
 
 	// Need to manually copy normals over as otherwise the other memory falls out of scope
 	// memcpy(normals, this->normals, sizeof(glm::vec3) * 3);
-	this->normals[0] = normals[0];
-	this->normals[1] = normals[1];
-	this->normals[2] = normals[2];
+	Triangle::normals[0] = normals[0];
+	Triangle::normals[1] = normals[1];
+	Triangle::normals[2] = normals[2];
 }
 
 bool Triangle::intersects(Ray *ray, float *distance, glm::vec2 &uv, int *triangleIndex) {
@@ -48,7 +48,7 @@ bool Triangle::intersects(Ray *ray, float *distance, glm::vec2 &uv, int *triangl
 
 glm::vec3 Triangle::getNormal(Intersect &intersect) {
     // u and v were calculated earlier, now we can just calculate w
-    float w = 1.f - intersect.uv.x - intersect.uv.y;
+	const auto w = 1.f - intersect.uv.x - intersect.uv.y;
 
-    return glm::normalize(w * normals[0] + intersect.uv.x * normals[1] + intersect.uv.y * normals[2]);
+    return normalize(w * normals[0] + intersect.uv.x * normals[1] + intersect.uv.y * normals[2]);
 }

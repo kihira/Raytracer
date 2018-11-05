@@ -299,7 +299,7 @@ inline void initScene() {
     // shapes.push_back(new Plane(glm::vec3(0.f, -4.f, 0.f), glm::vec3(0.f, -1.f, 0.f), {glm::vec3(.8f), glm::vec3(.7f), 0.f}));
 
     // Teapot
-    glm::vec3 teapotPosition(0, 2, -10);
+    glm::vec3 teapotPosition(0, 5, -10);
     std::vector<glm::vec3> vertices;
     std::vector<glm::vec3> normals;
     std::vector<Triangle *> triangles;
