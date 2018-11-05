@@ -65,9 +65,9 @@ struct Camera {
 
 struct RenderInfo {
     long long renderTime;
-    int primaryRays;
-    int shadowRays;
-    int reflectionRays;
+    unsigned int primaryRays;
+    unsigned int shadowRays;
+    unsigned int reflectionRays;
 
     void reset() {
         primaryRays = 0;
@@ -269,9 +269,11 @@ void renderScene() {
 
     std::cout << "Render Details" << std::endl
               << "================" << std::endl
-              << "Time: " << gRenderInfos[0].renderTime
-              << "ms" << std::endl
+              << "Time: " << gRenderInfos[0].renderTime << "ms" << std::endl
               << "Objects: " << shapes.size() << std::endl
+              << "Primary Rays: " << gRenderInfos[0].primaryRays << std::endl
+              << "Reflection Rays: " << gRenderInfos[0].reflectionRays << std::endl
+              << "Shadow Rays: " << gRenderInfos[0].shadowRays << std::endl
               << "================" << std::endl << std::endl;
 }
 
