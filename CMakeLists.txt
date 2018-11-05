@@ -4,7 +4,7 @@ project(322COM_raycaster)
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/bin")
 
-add_executable(${PROJECT_NAME} ${SOURCES} glad/src/glad.c src/main.cpp src/shapes/shape.h src/shapes/sphere.cpp src/shapes/sphere.h src/shapes/plane.cpp src/shapes/plane.h src/ray.cpp src/ray.h src/image.cpp src/image.h src/shapes/triangle.cpp src/shapes/triangle.h src/shapes/shape.cpp src/light.cpp src/light.h src/boxLight.cpp src/boxLight.h)
+add_executable(${PROJECT_NAME} ${SOURCES} glad/src/glad.c src/main.cpp src/shapes/shape.h src/shapes/sphere.cpp src/shapes/sphere.h src/shapes/plane.cpp src/shapes/plane.h src/ray.cpp src/ray.h src/image.cpp src/image.h src/shapes/triangle.cpp src/shapes/triangle.h src/shapes/shape.cpp src/light.cpp src/light.h src/boxLight.cpp src/boxLight.h src/shapes/mesh.cpp src/shapes/mesh.h)
 
 # GLM
 include_directories(${PROJECT_NAME} ./glm)

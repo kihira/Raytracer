@@ -21,7 +21,7 @@ public:
 
     virtual ~Shape() = default;
 
-    virtual bool intersects(Ray *ray, float *distance, glm::vec2 &uv) = 0;
+    virtual bool intersects(Ray *ray, float *distance, glm::vec2 &uv, int *triangleIndex) = 0;
 
     virtual glm::vec3 getNormal(Intersect &intersect);
 

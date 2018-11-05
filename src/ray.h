@@ -9,8 +9,12 @@ class Shape; // Forward declaration
 struct Intersect {
     Shape *hitShape;
     float distance;
+    int triangleIndex; // Used for mesh
     glm::vec2 uv; // Used for triangle
     glm::vec3 hitPoint;
+    void reset() {
+        hitShape = nullptr;
+    }
 };
 
 class Ray {

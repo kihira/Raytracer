@@ -18,6 +18,7 @@
 #include "shapes/triangle.h"
 #include "light.h"
 #include "boxLight.h"
+#include "shapes/mesh.h"
 
 #define EPSILON 1e-4
 #define THREADS 4
@@ -282,10 +283,10 @@ void renderScene() {
  */
 inline void initScene() {
     // Create spheres
-    shapes.push_back(new Sphere(glm::vec3(0, 0, -20), 4, {glm::vec3(1.f, .32f, .36f), glm::vec3(.2f), 20.f}));
-    shapes.push_back(new Sphere(glm::vec3(5, -1, -15), 2, {glm::vec3(.9f, .76f, .46f), glm::vec3(.9f), 20.f}));
-    shapes.push_back(new Sphere(glm::vec3(5, 0, -25), 3, {glm::vec3(.65f, .77f, .97f), glm::vec3(.5f), 20.f}));
-    shapes.push_back(new Sphere(glm::vec3(-5.5, 0, -15), 3, {glm::vec3(.9f), glm::vec3(.5f), 20.f}));
+//    shapes.push_back(new Sphere(glm::vec3(0, 0, -20), 4, {glm::vec3(1.f, .32f, .36f), glm::vec3(.2f), 20.f}));
+//    shapes.push_back(new Sphere(glm::vec3(5, -1, -15), 2, {glm::vec3(.9f, .76f, .46f), glm::vec3(.9f), 20.f}));
+//    shapes.push_back(new Sphere(glm::vec3(5, 0, -25), 3, {glm::vec3(.65f, .77f, .97f), glm::vec3(.5f), 20.f}));
+//    shapes.push_back(new Sphere(glm::vec3(-5.5, 0, -15), 3, {glm::vec3(.9f), glm::vec3(.5f), 20.f}));
 
     // triangle
 //    shapes.push_back(new Triangle(
@@ -295,12 +296,13 @@ inline void initScene() {
 //            {{0.5, 0.5, 0}, {0.5, 0.5, 0}, {0.7, 0.7, 0.7}, 100}));
 
     // Floor
-    shapes.push_back(new Plane(glm::vec3(0.f, -4.f, 0.f), glm::vec3(0.f, -1.f, 0.f), {glm::vec3(.8f), glm::vec3(.7f), 0.f}));
+    // shapes.push_back(new Plane(glm::vec3(0.f, -4.f, 0.f), glm::vec3(0.f, -1.f, 0.f), {glm::vec3(.8f), glm::vec3(.7f), 0.f}));
 
     // Teapot
     glm::vec3 teapotPosition(0, 2, -10);
     std::vector<glm::vec3> vertices;
     std::vector<glm::vec3> normals;
+    std::vector<Triangle *> triangles;
     Material teapotMat {
         glm::vec3(.5f, .5f, 0.f),
         glm::vec3(.7f, .7f, .7f),
@@ -308,8 +310,9 @@ inline void initScene() {
     };
     loadOBJ("./teapot_smooth.obj", vertices, normals);
     for (int i = 0; i < vertices.size(); i+=3) {
-        shapes.push_back(new Triangle(teapotPosition, &vertices[i], &normals[i], teapotMat));
+        triangles.push_back(new Triangle(teapotPosition, &vertices[i], &normals[i], teapotMat));
     }
+    shapes.push_back(new Mesh(teapotPosition, glm::vec3(-7, 2, -13), glm::vec3(1, 6, -7), triangles, teapotMat));
 
     // Lights
     light = std::unique_ptr<BoxLight>(new BoxLight(glm::vec3(-4.5f, 20.f, -4.5f), glm::vec3(9.f, .1f, 9.f), glm::vec3(.2f), glm::vec3(1.f)));
@@ -427,7 +430,7 @@ int main() {
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 2, (void *) 0);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 2, nullptr);
     glErrorCheck();
 
     // Generate texture to store our raycast output to
@@ -503,7 +506,6 @@ int main() {
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
         glfwSwapBuffers(window);
-        //glfwPollEvents();
         glfwWaitEvents(); // Wait for new input before rendering
     }
 

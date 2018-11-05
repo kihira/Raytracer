@@ -17,7 +17,7 @@ Triangle::Triangle(glm::vec3 position, glm::vec3 *vertices, glm::vec3 *normals, 
 	this->normals[2] = normals[2];
 }
 
-bool Triangle::intersects(Ray *ray, float *distance, glm::vec2 &uv) {
+bool Triangle::intersects(Ray *ray, float *distance, glm::vec2 &uv, int *triangleIndex) {
     glm::vec3 e1 = vertices[1] - vertices[0];
     glm::vec3 e2 = vertices[2] - vertices[0];
 

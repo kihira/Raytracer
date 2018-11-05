@@ -5,7 +5,7 @@ Plane::Plane(const glm::vec3 &position, const glm::vec3 &normal, Material materi
     this->normal = normal;
 }
 
-bool Plane::intersects(Ray *ray, float *distance, glm::vec2 &uv) {
+bool Plane::intersects(Ray *ray, float *distance, glm::vec2 &uv, int *triangleIndex) {
     // Check if the rays are in the same direction or not. If it's almost 0 then they're pointing the same direction
     float dotProduct = glm::dot(normal, ray->direction);
     if (dotProduct < 1e-6) return false;

@@ -9,7 +9,7 @@
 class Plane : public Shape {
 public:
     Plane(const glm::vec3 &position, const glm::vec3 &normal, Material material);
-    bool intersects(Ray *ray, float *distance, glm::vec2 &uv) override;
+    bool intersects(Ray *ray, float *distance, glm::vec2 &uv, int *triangleIndex) override;
 };
 
 

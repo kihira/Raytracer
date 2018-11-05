@@ -17,7 +17,7 @@ public:
     * @param distance This value is set to the closest distance between the sphere and ray->origin
     * @return Whether the ray hit or not
     */
-    bool intersects(Ray *ray, float *distance, glm::vec2 &uv) override;
+    bool intersects(Ray *ray, float *distance, glm::vec2 &uv, int *triangleIndex) override;
 
     glm::vec3 getNormal(Intersect &intersect) override;
 };
