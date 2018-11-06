@@ -281,7 +281,7 @@ void renderScene() {
  */
 inline void initScene() {
 	// Floor
-	shapes.push_back(new Plane(glm::vec3(0.f, -4.f, 0.f), glm::vec3(0.f, -1.f, 0.f), { glm::vec3(.8f), glm::vec3(.7f), 0.f }));
+	shapes.push_back(new Plane(glm::vec3(0.f, -4.f, 0.f), glm::vec3(0.f, 1.f, 0.f), { glm::vec3(.2f), glm::vec3(.7f), 0.f }));
 
     // Create spheres
     shapes.push_back(new Sphere(glm::vec3(0, 0, -20), 4, {glm::vec3(1.f, .32f, .36f), glm::vec3(.2f), 20.f}));
