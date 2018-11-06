@@ -57,9 +57,7 @@ struct Camera {
     float fov = 90.f;
 
     void updateViewMatrix() {
-        // viewMatrix = glm::lookAt(position, glm::vec3(0, 0, -10), glm::vec3(0, 1, 0));
         viewMatrix = glm::translate(glm::mat4(1.f), position);
-
     }
 } camera;
 
@@ -487,7 +485,7 @@ int main() {
 
         if (ImGui::Begin("Render Statistics")) {
             ImGui::LabelText("Time", "%lli ms", gRenderInfos[0].renderTime);
-            ImGui::LabelText("Objects", "%i", shapes.size());
+            ImGui::LabelText("Objects", "%lu", shapes.size());
 			ImGui::LabelText("Resolution", "%ix%i", image->getWidth(), image->getHeight());
             ImGui::LabelText("Primary rays", "%i", gRenderInfos[0].primaryRays);
             ImGui::LabelText("Shadow rays", "%i", gRenderInfos[0].shadowRays);
