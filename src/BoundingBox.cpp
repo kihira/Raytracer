@@ -2,27 +2,38 @@
 #include "BoundingBox.h"
 
 bool BoundingBox::intersects(Ray *ray) {
-    // Smits algorithm
-    // Treats each side of the box as a plane
-    glm::vec3 tMin = (minBounds - ray->origin) * ray->invDirection;
-    glm::vec3 tMax = (maxBounds - ray->origin) * ray->invDirection;
-    if (tMin.x > tMax.x) std::swap(tMin.x, tMax.x); // Get the closest x plane
-    if (tMin.y > tMax.y) std::swap(tMin.y, tMax.y); // Get the closest y zine
-    if (tMin.z > tMax.z) std::swap(tMin.z, tMax.z); // Get the closest z plane
-
-    // Test if we hit the x and y planes within the bounds
-    if (tMin.x > tMax.y || tMin.y > tMax.x) return false;
-
-    if (tMin.y > tMin.x) {
-        tMin.x = tMin.y;
-    }
-    if (tMax.y < tMax.x) {
-        tMax.x = tMax.y;
+    // Check if the ray is starting inside the bounding box
+    if (ray->origin.x > minBounds.x && ray->origin.y > minBounds.y && ray->origin.z > minBounds.z &&
+        ray->origin.x < maxBounds.x && ray->origin.y < maxBounds.y && ray->origin.z < maxBounds.z) {
+        return true;
     }
 
-    // Test if we hit the z plane within the bounds
-    if (tMin.x > tMax.z || tMin.z > tMax.x) return false;
+    glm::vec3 t;
 
+    // Calculate distances (t) to the closest face of the box on each axis
+    for (int i = 0; i < 3; ++i) {
+        if (ray->direction[i] > 0) {
+            t[i] = (minBounds[i] - ray->origin[i]) * ray->invDirection[i];
+        } else {
+            t[i] = (maxBounds[i] - ray->origin[i]) * ray->invDirection[i];
+        }
+    }
+
+    // The largest distance (t) is the plane that got hit
+    int plane = 0;
+    for (int i = 1; i < 3; ++i) {
+        if (t[plane] < t[i]) plane = i;
+    }
+
+    // Now check if we've landed inside the box
+    for (int i = 0; i < 3; ++i) {
+        if (plane != i) {
+            auto coord = ray->origin[i] + t[plane] * ray->direction[i];
+            if (coord < minBounds[i] || coord > maxBounds[i]) {
+                return false;
+            }
+        }
+    }
     return true;
 }
 

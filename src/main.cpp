@@ -146,7 +146,7 @@ glm::vec3 calculateLighting(Ray *ray, Intersect &intersect, RenderInfo &renderIn
 
 				shadowIntersect.reset();
 				// If we hit a shape, then in full shadow so just get ambient
-                if (shadowRay->cast(shapes, shadowIntersect)) {
+                if (shadowRay->cast(shapes, shadowIntersect, true)) {
                     color += mat.ambient * light->getAmbientIntensity();
                     continue;
                 }
@@ -303,7 +303,7 @@ inline void initScene() {
 
     // Create spheres
     shapes.push_back(new Sphere(glm::vec3(0.f, 4, -20.f), 4, {glm::vec3(1.f, .32f, .36f), glm::vec3(.2f), 20.f}));
-    shapes.push_back(new Sphere(glm::vec3(5.f, 3.f, -15.f), 2, {glm::vec3(.9f, .76f, .46f), glm::vec3(.9f), 20.f}));
+    shapes.push_back(new Sphere(glm::vec3(5.f, 3.f, -15.f), 2, {glm::vec3(.9f, .76f, .46f), glm::vec3(0.f), 128.f}));
     shapes.push_back(new Sphere(glm::vec3(5.f, 4.f, -25.f), 3, {glm::vec3(.65f, .77f, .97f), glm::vec3(.5f), 20.f}));
     shapes.push_back(new Sphere(glm::vec3(-5.5f, 4.f, -15.f), 3, {glm::vec3(.9f), glm::vec3(.5f), 20.f}));
 

@@ -3,7 +3,7 @@
 
 Ray::Ray(const glm::vec3 &origin, const glm::vec3 &direction) : direction(direction), origin(origin) {}
 
-bool Ray::cast(std::vector<Shape *> &shapes, Intersect &intersect, Shape *ignore) {
+bool Ray::cast(std::vector<Shape *> &shapes, Intersect &intersect, bool hitAny) {
     // Loop through the shapes and see if we hit
 	glm::vec2 uv;
     float distance = INFINITY;
@@ -11,14 +11,12 @@ bool Ray::cast(std::vector<Shape *> &shapes, Intersect &intersect, Shape *ignore
 	int triangleIndex = -1;
 
     for (auto& shape : shapes) {
-        if (shape == ignore) {
-            continue;
-        }
         if (shape->intersects(this, &distance, uv, &triangleIndex) && distance > 0 && distance < intersect.distance) {
             intersect.hitShape = shape;
             intersect.distance = distance;
 			intersect.uv = uv;
 			intersect.triangleIndex = triangleIndex;
+			if (hitAny) return true;
         }
     }
     return intersect.hitShape != nullptr;
