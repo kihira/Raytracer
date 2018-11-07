@@ -135,7 +135,7 @@ glm::vec3 calculateLighting(Ray *ray, Intersect &intersect, RenderInfo &renderIn
 	    const auto xStart = light->getPosition().x - light->getSize().x / 2.f;
 	    const auto zStart = light->getPosition().z - light->getSize().z / 2.f;
 
-	    auto shadowRay = new Ray(intersect.hitPoint, intersect.hitPoint);
+	    auto shadowRay = new Ray(intersect.hitPoint + (normal * EPSILON), intersect.hitPoint);
 		auto shadowIntersect = Intersect();
 
         // Shoot out multiple rays for soft shadows
@@ -146,7 +146,7 @@ glm::vec3 calculateLighting(Ray *ray, Intersect &intersect, RenderInfo &renderIn
 
 				shadowIntersect.reset();
 				// If we hit a shape, then in full shadow so just get ambient
-                if (shadowRay->cast(shapes, shadowIntersect, intersect.hitShape)) {
+                if (shadowRay->cast(shapes, shadowIntersect)) {
                     color += mat.ambient * light->getAmbientIntensity();
                     continue;
                 }
@@ -177,11 +177,11 @@ glm::vec3 calculateLighting(Ray *ray, Intersect &intersect, RenderInfo &renderIn
 		auto reflectionIntersect = Intersect();
 
         // Reuse main ray
-        ray->setOrigin(intersect.hitPoint);
+        ray->setOrigin(intersect.hitPoint + (normal * EPSILON));
         ray->setDirection(reflectionDir);
         ray->depth += 1;
 
-        if (ray->cast(shapes, reflectionIntersect, intersect.hitShape)) {
+        if (ray->cast(shapes, reflectionIntersect)) {
             color += mat.specular * calculateLighting(ray, reflectionIntersect, renderInfo);
         }
         else {

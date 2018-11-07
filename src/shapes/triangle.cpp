@@ -19,9 +19,7 @@ Triangle::Triangle(glm::vec3 position, glm::vec3 *vertices, glm::vec3 *normals, 
     auto minBounds = Triangle::vertices[0];
     auto maxBounds = Triangle::vertices[0];
 
-    for (auto i = 0; i < 3; ++i)
-    {
-        auto vertex = Triangle::vertices[i];
+    for (auto vertex : Triangle::vertices) {
         if (vertex.x < minBounds.x) minBounds.x = vertex.x;
         else if (vertex.x > maxBounds.x) maxBounds.x = vertex.x;
         if (vertex.y < minBounds.y) minBounds.y = vertex.y;
