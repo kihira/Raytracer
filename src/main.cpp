@@ -52,7 +52,7 @@ static const float vertices[16]{
 };
 
 struct Camera {
-    glm::vec3 position = glm::vec3(0.f, 3.f, 0.f);
+    glm::vec3 position = glm::vec3(0.f, 6.f, 0.f);
     glm::mat4 viewMatrix = glm::mat4(1.f);
     float fov = 90.f;
 
@@ -308,7 +308,7 @@ inline void initScene() {
     shapes.push_back(new Sphere(glm::vec3(-5.5f, 4.f, -15.f), 3, {glm::vec3(.9f), glm::vec3(.5f), 20.f}));
 
     // Teapot
-    loadModelFromFile("./teapot_smooth.obj", glm::vec3(0.f, 0.f, -10.f), {glm::vec3(.5f, .5f, 0.f), glm::vec3(.7f), 100.f});
+    loadModelFromFile("./teapot_smooth.obj", glm::vec3(-4.f, 2.f, -10.f), {glm::vec3(.5f, .5f, 0.f), glm::vec3(.7f), 100.f});
 
     auto houseMat = Material(
             glm::vec3(.59f, .29f, 0.f),
@@ -318,9 +318,9 @@ inline void initScene() {
     loadModelFromFile("./house_obj.obj", glm::vec3(-18.f, .01f, -12.f), houseMat);
     loadModelFromFile("./house_obj.obj", glm::vec3(-16.f, .01f, -19.f), houseMat);
 
-    loadModelFromFile("./medieval_house.obj", glm::vec3(20.f, .01f, -5.f), {glm::vec3(.9f, .9f, 0.f), glm::vec3(.3f), 0.f});
-    loadModelFromFile("./medieval_house.obj", glm::vec3(18.f, .01f, -20.f), {glm::vec3(.9f, .9f, 0.f), glm::vec3(.3f), 0.f});
-    loadModelFromFile("./medieval_house.obj", glm::vec3(16.f, .01f, -35.f), {glm::vec3(.9f, .9f, 0.f), glm::vec3(.3f), 0.f});
+    loadModelFromFile("./medieval_house.obj", glm::vec3(20.f, .01f, -2.f), {glm::vec3(0.f, 0.f, .9f), glm::vec3(.3f), 0.f});
+    loadModelFromFile("./medieval_house.obj", glm::vec3(16.f, .01f, -22.f), {glm::vec3(0.f, .9f, 0.f), glm::vec3(.3f), 0.f});
+    loadModelFromFile("./medieval_house.obj", glm::vec3(12.f, .01f, -42.f), {glm::vec3(.9f, .0f, 0.f), glm::vec3(.1f), 0.f});
 
     loadModelFromFile("./house_obj.obj", glm::vec3(-10.f, .01f, 5.f), {glm::vec3(.9f, .9f, 0.f), glm::vec3(.3f), 0.f});
     loadModelFromFile("./medieval_house.obj", glm::vec3(10.f, .01f, 5.f), {glm::vec3(.9f, .9f, 0.f), glm::vec3(.3f), 0.f});
@@ -386,7 +386,7 @@ int main() {
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, true);
 #endif
 
-    window = glfwCreateWindow(640, 480, "322COM Raycaster", nullptr, nullptr);
+    window = glfwCreateWindow(320, 240, "322COM Raycaster", nullptr, nullptr);
     if (!window) {
         glfwTerminate();
         return -1;
