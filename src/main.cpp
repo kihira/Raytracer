@@ -75,12 +75,12 @@ struct RenderInfo {
 } gRenderInfos[THREADS];
 
 struct RenderSettings {
-    int softShadowSamples = 64;
-    int sssSqrt = 8;
+    int softShadowSamples = 32;
+    int sssSqrt = 4;
     float shadowJitter = 1.f;
-    bool shadows = false;
+    bool shadows = true;
     bool reflections = true;
-    int maxReflectionDepth = 1;
+    int maxReflectionDepth = 2;
 } renderSettings;
 
 std::unique_ptr<Image> image;
@@ -184,6 +184,9 @@ glm::vec3 calculateLighting(Ray *ray, Intersect &intersect, RenderInfo &renderIn
         if (ray->cast(shapes, reflectionIntersect, intersect.hitShape)) {
             color += mat.specular * calculateLighting(ray, reflectionIntersect, renderInfo);
         }
+        else {
+            color += mat.specular * image->getBackground(); // Reflect the "sky"
+        }
 
         renderInfo.reflectionRays += 1;
     }
@@ -247,6 +250,7 @@ void renderScene() {
 	auto xPortions = image->getWidth() / THREADS; // Divide area up by x section
 
     for (auto i = 0; i < THREADS; ++i) {
+        gRenderInfos[i].reset();
         threads[i] = std::thread([xPortions, i](){ return raycast(xPortions * i, xPortions, gRenderInfos[i]);});
     }
 
@@ -304,25 +308,22 @@ inline void initScene() {
     shapes.push_back(new Sphere(glm::vec3(-5.5f, 4.f, -15.f), 3, {glm::vec3(.9f), glm::vec3(.5f), 20.f}));
 
     // Teapot
-    loadModelFromFile("./teapot_smooth.obj", glm::vec3(0.f, 2.f, -10.f), {
-            glm::vec3(.5f, .5f, 0.f),
-            glm::vec3(.7f),
-            100.f
-    });
+    loadModelFromFile("./teapot_smooth.obj", glm::vec3(0.f, 0.f, -10.f), {glm::vec3(.5f, .5f, 0.f), glm::vec3(.7f), 100.f});
 
     auto houseMat = Material(
             glm::vec3(.59f, .29f, 0.f),
             glm::vec3(.3f),
             0.f);
     loadModelFromFile("./house_obj.obj", glm::vec3(-20.f, .01f, -5.f), houseMat);
-    loadModelFromFile("./house_obj.obj", glm::vec3(-20.f, .01f, -12.f), houseMat);
-    loadModelFromFile("./house_obj.obj", glm::vec3(-20.f, .01f, -19.f), houseMat);
+    loadModelFromFile("./house_obj.obj", glm::vec3(-18.f, .01f, -12.f), houseMat);
+    loadModelFromFile("./house_obj.obj", glm::vec3(-16.f, .01f, -19.f), houseMat);
 
     loadModelFromFile("./medieval_house.obj", glm::vec3(20.f, .01f, -5.f), {glm::vec3(.9f, .9f, 0.f), glm::vec3(.3f), 0.f});
-    loadModelFromFile("./medieval_house.obj", glm::vec3(20.f, .01f, -20.f), {glm::vec3(.9f, .9f, 0.f), glm::vec3(.3f), 0.f});
-    loadModelFromFile("./medieval_house.obj", glm::vec3(20.f, .01f, -35.f), {glm::vec3(.9f, .9f, 0.f), glm::vec3(.3f), 0.f});
+    loadModelFromFile("./medieval_house.obj", glm::vec3(18.f, .01f, -20.f), {glm::vec3(.9f, .9f, 0.f), glm::vec3(.3f), 0.f});
+    loadModelFromFile("./medieval_house.obj", glm::vec3(16.f, .01f, -35.f), {glm::vec3(.9f, .9f, 0.f), glm::vec3(.3f), 0.f});
 
-    //loadModelFromFile("./camera.obj", glm::vec3(0.f, 0.f, 0.f), houseMat);
+    loadModelFromFile("./house_obj.obj", glm::vec3(-10.f, .01f, 5.f), {glm::vec3(.9f, .9f, 0.f), glm::vec3(.3f), 0.f});
+    loadModelFromFile("./medieval_house.obj", glm::vec3(10.f, .01f, 5.f), {glm::vec3(.9f, .9f, 0.f), glm::vec3(.3f), 0.f});
 
     // Lights
     light = std::make_unique<BoxLight>(glm::vec3(-4.5f, 20.f, -4.5f), glm::vec3(9.f, .1f, 9.f), glm::vec3(.2f), glm::vec3(1.f));
@@ -414,7 +415,7 @@ int main() {
     // Create image/texture raycaster will write to
     int width, height;
     glfwGetFramebufferSize(window, &width, &height);
-    image = std::make_unique<Image>(width, height, glm::vec3(1.f, 1.f, 1.f));
+    image = std::make_unique<Image>(width, height, glm::vec3(.53f, .8f, .92f)); // sky blue
 
     // Generate basic shader program
     vertexShader = glCreateShader(GL_VERTEX_SHADER);
