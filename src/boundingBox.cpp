@@ -1,5 +1,5 @@
 
-#include "BoundingBox.h"
+#include "boundingBox.h"
 
 bool BoundingBox::intersects(Ray *ray) {
     // Check if the ray is starting inside the bounding box

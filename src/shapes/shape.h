@@ -4,7 +4,7 @@
 
 #include <glm.hpp>
 #include "../ray.h"
-#include "../BoundingBox.h"
+#include "../boundingBox.h"
 
 struct Material {
     glm::vec3 ambient;
