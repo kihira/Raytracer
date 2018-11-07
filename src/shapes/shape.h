@@ -4,6 +4,7 @@
 
 #include <glm.hpp>
 #include "../ray.h"
+#include "../BoundingBox.h"
 
 struct Material {
     glm::vec3 ambient;
@@ -33,6 +34,7 @@ protected:
 	glm::vec3 rotation{ 0.f, 0.f, 0.f };
     glm::vec3 normal;
     Material material;
+    BoundingBox *aabb;
 };
 
 

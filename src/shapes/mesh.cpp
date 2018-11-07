@@ -6,8 +6,8 @@
 Mesh::Mesh(const glm::vec3 &position, std::vector<Triangle *> triangles, const Material &material) : Shape(position, material), triangles(std::move(triangles))
 {
 	// Set min/max to just the first vertex for now
-	minBounds = Mesh::triangles[0]->getVertices()[0];
-	maxBounds = Mesh::triangles[0]->getVertices()[0];
+	auto minBounds = Mesh::triangles[0]->getVertices()[0];
+	auto maxBounds = Mesh::triangles[0]->getVertices()[0];
 
 	for (auto triangle : Mesh::triangles)
 	{
@@ -22,30 +22,13 @@ Mesh::Mesh(const glm::vec3 &position, std::vector<Triangle *> triangles, const M
 			else if (vertex.z > maxBounds.z) maxBounds.z = vertex.z;
 		}
 	}
+
+	aabb = new BoundingBox(minBounds, maxBounds);
 	// Don't need to transform the min/max bounds by position as the vertices positions were already transformed
 }
 
 bool Mesh::intersects(Ray *ray, float *distance, glm::vec2 &uv, int *triangleIndex) {
-    // Treat the box as effectively many lines
-    // Smits algorithm
-	glm::vec3 tMin = (minBounds - ray->origin) * ray->invDirection;
-	glm::vec3 tMax = (maxBounds - ray->origin) * ray->invDirection;
-    if (tMin.x > tMax.x) std::swap(tMin.x, tMax.x); // Get the closest x line
-    if (tMin.y > tMax.y) std::swap(tMin.y, tMax.y); // Get the closest y zine
-
-    if (tMin.x > tMax.y || tMin.y > tMax.x) return false;
-
-    if (tMin.y > tMin.x) {
-        tMin.x = tMin.y;
-    }
-
-    if (tMax.y < tMax.x) {
-        tMax.x = tMax.y;
-    }
-
-    if (tMin.z > tMax.z) std::swap(tMin.z, tMax.z); // Get the closest z line
-
-    if (tMin.x > tMax.z || tMin.z > tMax.x) return false;
+	if (!aabb->intersects(ray)) return false;
 
 	// Loop through the triangles and find the closest one
 	// This is effectively the same code as Ray::cast

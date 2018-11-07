@@ -15,9 +15,27 @@ Triangle::Triangle(glm::vec3 position, glm::vec3 *vertices, glm::vec3 *normals, 
 	Triangle::normals[0] = normals[0];
 	Triangle::normals[1] = normals[1];
 	Triangle::normals[2] = normals[2];
+
+    auto minBounds = Triangle::vertices[0];
+    auto maxBounds = Triangle::vertices[0];
+
+    for (auto i = 0; i < 3; ++i)
+    {
+        auto vertex = Triangle::vertices[i];
+        if (vertex.x < minBounds.x) minBounds.x = vertex.x;
+        else if (vertex.x > maxBounds.x) maxBounds.x = vertex.x;
+        if (vertex.y < minBounds.y) minBounds.y = vertex.y;
+        else if (vertex.y > maxBounds.y) maxBounds.y = vertex.y;
+        if (vertex.z < minBounds.z) minBounds.z = vertex.z;
+        else if (vertex.z > maxBounds.z) maxBounds.z = vertex.z;
+    }
+
+    aabb = new BoundingBox(minBounds, maxBounds);
 }
 
 bool Triangle::intersects(Ray *ray, float *distance, glm::vec2 &uv, int *triangleIndex) {
+    if (!aabb->intersects(ray)) return false;
+
     glm::vec3 e1 = vertices[1] - vertices[0];
     glm::vec3 e2 = vertices[2] - vertices[0];
 

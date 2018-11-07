@@ -9,8 +9,6 @@
 class Mesh : public Shape {
 private:
     std::vector<Triangle *> triangles;
-    glm::vec3 minBounds{}; // AABB
-    glm::vec3 maxBounds{};
 public:
     Mesh(const glm::vec3 &position, std::vector<Triangle *> triangles, const Material &material);
 

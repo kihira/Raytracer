@@ -2,9 +2,12 @@
 
 Sphere::Sphere(const glm::vec3 &position, float radius, Material material)
         : Shape(position, material), radius(radius) {
+    aabb = new BoundingBox(position - radius, position + radius);
 }
 
 bool Sphere::intersects(Ray *ray, float *distance, glm::vec2 &uv, int *triangleIndex) {
+    if (!aabb->intersects(ray)) return false;
+
     // Construct a right angle triangle between center of sphere, origin and ray
     glm::vec3 L = this->position - ray->origin;
     float tca = glm::dot(L, ray->direction);

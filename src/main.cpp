@@ -286,6 +286,8 @@ void loadModelFromFile(const char *file, glm::vec3 position, Material material) 
         triangles.push_back(new Triangle(position, &vertices[i], &normals[i], material));
     }
     shapes.push_back(new Mesh(position, triangles, material));
+
+    std::cout << "Loaded " << vertices.size() << " vertices, " << triangles.size() << " triangles" << std::endl;
 }
 
 /**
@@ -312,10 +314,15 @@ inline void initScene() {
             glm::vec3(.59f, .29f, 0.f),
             glm::vec3(.3f),
             0.f);
-    loadModelFromFile("./house_obj.obj", glm::vec3(15.f, .01f, -15.f), houseMat);
-    loadModelFromFile("./house_obj.obj", glm::vec3(3.f, .01f, 5.f), houseMat);
+    loadModelFromFile("./house_obj.obj", glm::vec3(-20.f, .01f, -5.f), houseMat);
+    loadModelFromFile("./house_obj.obj", glm::vec3(-20.f, .01f, -12.f), houseMat);
+    loadModelFromFile("./house_obj.obj", glm::vec3(-20.f, .01f, -19.f), houseMat);
 
-    loadModelFromFile("./Budynek_5.obj", glm::vec3(3.f, .01f, 5.f), houseMat);
+    loadModelFromFile("./medieval_house.obj", glm::vec3(20.f, .01f, -5.f), {glm::vec3(.9f, .9f, 0.f), glm::vec3(.3f), 0.f});
+    loadModelFromFile("./medieval_house.obj", glm::vec3(20.f, .01f, -20.f), {glm::vec3(.9f, .9f, 0.f), glm::vec3(.3f), 0.f});
+    loadModelFromFile("./medieval_house.obj", glm::vec3(20.f, .01f, -35.f), {glm::vec3(.9f, .9f, 0.f), glm::vec3(.3f), 0.f});
+
+    //loadModelFromFile("./camera.obj", glm::vec3(0.f, 0.f, 0.f), houseMat);
 
     // Lights
     light = std::make_unique<BoxLight>(glm::vec3(-4.5f, 20.f, -4.5f), glm::vec3(9.f, .1f, 9.f), glm::vec3(.2f), glm::vec3(1.f));
